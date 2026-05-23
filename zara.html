@@ -1,126 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Zara — Jacques del Conte</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<header>
-  <div class="bar">
-    <a href="index.html" class="back">← All Work</a>
-    <a href="index.html" class="home">Jacques del Conte</a>
-    <div class="links">
-      <a href="mailto:jacques@jacquesdelconte.com">Contact</a>
-      <a href="https://www.linkedin.com/in/jacquesdelconte/" target="_blank" rel="noopener">LinkedIn</a>
-    </div>
-  </div>
-</header>
-
+<header><div class="bar"><a href="index.html" class="back">← All Work</a><a href="index.html" class="home">Jacques del Conte</a><div class="links"><a href="mailto:jacques@jacquesdelconte.com">Contact</a><a href="https://www.linkedin.com/in/jacquesdelconte/" target="_blank" rel="noopener">LinkedIn</a></div></div></header>
 <div class="m-progress" id="mProgress"></div>
 <div class="m-story-wrap" id="mStory"></div>
 <div class="m-nav-hint" id="mNavHint"><span>Swipe</span><span class="arr">→</span></div>
-
 <main id="projects-desktop">
-  <section class="client-head wrap">
-    <div class="eyebrow">Post Production</div>
-    <h1>Zara</h1>
-  </section>
-  <nav class="index wrap">
-    <div class="label">Projects</div>
-    <ul id="indexList"></ul>
-  </nav>
+  <section class="client-head wrap"><div class="eyebrow">Post Production</div><h1>Zara</h1></section>
+  <nav class="index wrap"><div class="label">Projects</div><ul id="indexList"></ul></nav>
   <div id="projects"></div>
-  <section class="pager wrap">
-    <div class="pager-inner">
-      <a href="crownroyal.html" class="prev"><div class="lbl">Previous</div><div class="nm">Crown Royal</div></a>
-      <a href="lv.html" class="next"><div class="lbl">Next</div><div class="nm">Louis Vuitton →</div></a>
-    </div>
-  </section>
+  <section class="pager wrap"><div class="pager-inner"><a href="crownroyal.html" class="prev"><div class="lbl">Previous</div><div class="nm">Crown Royal</div></a><a href="lv.html" class="next"><div class="lbl">Next</div><div class="nm">Louis Vuitton →</div></a></div></section>
 </main>
-
-<footer class="wrap">
-  <a class="mail" href="mailto:jacques@jacquesdelconte.com">jacques@jacquesdelconte.com</a>
-  <div class="copy">© <span id="year"></span> Jacques del Conte — Executive Producer &amp; Post Production Consultant</div>
-</footer>
-
+<footer class="wrap"><a class="mail" href="mailto:jacques@jacquesdelconte.com">jacques@jacquesdelconte.com</a><div class="copy">© <span id="year"></span> Jacques del Conte — Executive Producer &amp; Post Production Consultant</div></footer>
 <script src="client.js"></script>
 <script>
-/* ============================================================
-   ZARA — project data
-   Replace VIDEO_ID with real Vimeo or YouTube IDs.
-   Vimeo URL: https://vimeo.com/XXXXXXXXX  →  id: 'XXXXXXXXX'
-   YouTube URL: https://youtu.be/XXXXXXXXXXX  →  id: 'XXXXXXXXXXX'
-   ============================================================ */
-const PROJECTS = [
-  { id:'zara-x-kaia', title:'Zara X Kaia',
-    credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Philippe LeSourd'],['Styling','Karl Templer'],['Edit','Graham Patterson'],['Color','Tim Masick'],['Mix','Raphael Ajuelos']],
-    films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara X Kaia',poster:''}], layout:'single' },
-
-  { id:'zara-woman-fw21', title:'Zara Woman FW21',
-    credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Stuart Dryburgh'],['Edit','Will Town']],
-    films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara Woman FW21',poster:''}], layout:'single' },
-
-  { id:'room31', title:'"Room31"',
-    credits:[['EP of Post','Jacques del Conte'],['For','Zara Man FW21'],['Director','Fabien Baron'],['DP','Benoit Delhomme'],['Edit','Graham Patterson'],['Color','Tim Masick'],['Sound','Raphael Ajuelos']],
-    heroFilm:{provider:'vimeo',id:'VIDEO_ID',label:'Phone Call — Hero Film',poster:''},
-    films:[
-      {provider:'vimeo',id:'VIDEO_ID',label:'Film 1',poster:''},
-      {provider:'vimeo',id:'VIDEO_ID',label:'Film 2',poster:''},
-      {provider:'vimeo',id:'VIDEO_ID',label:'Film 3',poster:''}
-    ], layout:'triple' },
-
-  { id:'zara-man-fw20', title:'Zara Man FW20',
-    credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Benoit delHomme'],['Edit','Will Town'],['Color','Tim Masick'],['VFX','Nightshift'],['Music & Sound','Moritz Staub']],
-    films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara Man FW20',poster:''}], layout:'single' },
-
-  { id:'zara-women-fw20', title:'Zara Women FW20',
-    credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Benoit delHomme'],['Styling','Karl Templer'],['Edit','Will Town'],['Color','Tim Masick'],['VFX','Nightshift'],['Music','Future Perfect']],
-    films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara Women FW20',poster:''}], layout:'single' },
-
-  { id:'zara-man-ss21', title:'Zara Man SS21',
-    credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Stuart Dryburgh'],['Styling','Karl Templer'],['Edit','Will Town'],['Color','Tim Masick'],['VFX','Modern Post'],['Music','Future Perfect']],
-    films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara Man SS21',poster:''}], layout:'single' },
-
-  { id:'zara-kids-fw21', title:'Zara Kids FW21',
-    credits:[['EP of Post','Jacques del Conte'],['Director','Gregory Harris'],['Music','Wooden Shjips']],
-    films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara Kids FW21',poster:''}], layout:'single' },
-
-  { id:'zara-kids-ss21', title:'Zara Kids SS21',
-    credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['Music','Cat Power']],
-    films:[{provider:'youtube',id:'VIDEO_ID',label:'Zara Kids SS21 Campaign',poster:''}], layout:'single' },
-
-  { id:'zara-man-ss20', title:'Zara Man SS20',
-    credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Benoit delHomme'],['Styling','Karl Templer'],['Edit','Will Town'],['Color','Tim Masick'],['VFX','Nightshift'],['Music','Future Perfect']],
-    films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara Man SS20',poster:''}], layout:'single' },
-
-  { id:'zara-kids-fw20', title:'Zara Kids FW20',
-    credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Benoit delHomme'],['Styling','Karl Templer'],['Edit','Will Town'],['Color','Tim Masick'],['Sound','Raphael Ajuelos']],
-    films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara Kids FW20',poster:''}], layout:'single' },
-
-  { id:'zara-woman-fw19', title:'Zara Woman FW19',
-    credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Stuart Dryburgh'],['Styling','Karl Templer'],['Edit','Will Town'],['Color','Tim Masick'],['VFX','Nightshift']],
-    films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara Woman FW19',poster:''}], layout:'single' },
-
-  { id:'zara-man-fw19', title:'Zara Man FW19',
-    credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Benoit delHomme'],['Styling','Karl Templer'],['Edit','Will Town'],['Color','Tim Masick'],['VFX','Nightshift'],['Music','Future Perfect']],
-    films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara Man FW19',poster:''}], layout:'single' },
-
-  { id:'zara-woman-ss19', title:'Zara Woman SS19',
-    credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Stuart Dryburgh'],['Styling','Karl Templer'],['Edit','Will Town'],['Color','Tim Masick'],['VFX','Modern Post'],['Music','Future Perfect']],
-    films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara Woman SS19',poster:''}], layout:'single' },
-
-  { id:'zara-man-ss19', title:'Zara Man SS19',
-    credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Janusz Kaminski'],['Styling','Karl Templer'],['Edit','Will Town'],['Color','Tim Masick'],['VFX','Modern Post'],['Music','Broken English Club']],
-    films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara Man SS19',poster:''}], layout:'single' }
+const PROJECTS=[
+  {id:'zara-x-kaia',title:'Zara X Kaia',credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Philippe LeSourd'],['Styling','Karl Templer'],['Edit','Graham Patterson'],['Color','Tim Masick'],['Mix','Raphael Ajuelos']],films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara X Kaia',poster:''}],layout:'single'},
+  {id:'zara-woman-fw21',title:'Zara Woman FW21',credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Stuart Dryburgh'],['Edit','Will Town']],films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara Woman FW21',poster:''}],layout:'single'},
+  {id:'room31',title:'"Room31"',credits:[['EP of Post','Jacques del Conte'],['For','Zara Man FW21'],['Director','Fabien Baron'],['DP','Benoit Delhomme'],['Edit','Graham Patterson'],['Color','Tim Masick'],['Sound','Raphael Ajuelos']],heroFilm:{provider:'vimeo',id:'VIDEO_ID',label:'Phone Call — Hero Film',poster:''},films:[{provider:'vimeo',id:'VIDEO_ID',label:'Film 1',poster:''},{provider:'vimeo',id:'VIDEO_ID',label:'Film 2',poster:''},{provider:'vimeo',id:'VIDEO_ID',label:'Film 3',poster:''}],layout:'triple'},
+  {id:'zara-man-fw20',title:'Zara Man FW20',credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Benoit delHomme'],['Edit','Will Town'],['Color','Tim Masick'],['VFX','Nightshift'],['Music & Sound','Moritz Staub']],films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara Man FW20',poster:''}],layout:'single'},
+  {id:'zara-women-fw20',title:'Zara Women FW20',credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Benoit delHomme'],['Styling','Karl Templer'],['Edit','Will Town'],['Color','Tim Masick'],['VFX','Nightshift'],['Music','Future Perfect']],films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara Women FW20',poster:''}],layout:'single'},
+  {id:'zara-man-ss21',title:'Zara Man SS21',credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Stuart Dryburgh'],['Styling','Karl Templer'],['Edit','Will Town'],['Color','Tim Masick'],['VFX','Modern Post'],['Music','Future Perfect']],films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara Man SS21',poster:''}],layout:'single'},
+  {id:'zara-kids-fw21',title:'Zara Kids FW21',credits:[['EP of Post','Jacques del Conte'],['Director','Gregory Harris'],['Music','Wooden Shjips']],films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara Kids FW21',poster:''}],layout:'single'},
+  {id:'zara-kids-ss21',title:'Zara Kids SS21',credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['Music','Cat Power']],films:[{provider:'youtube',id:'VIDEO_ID',label:'Zara Kids SS21 Campaign',poster:''}],layout:'single'},
+  {id:'zara-man-ss20',title:'Zara Man SS20',credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Benoit delHomme'],['Styling','Karl Templer'],['Edit','Will Town'],['Color','Tim Masick'],['VFX','Nightshift'],['Music','Future Perfect']],films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara Man SS20',poster:''}],layout:'single'},
+  {id:'zara-kids-fw20',title:'Zara Kids FW20',credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Benoit delHomme'],['Styling','Karl Templer'],['Edit','Will Town'],['Color','Tim Masick'],['Sound','Raphael Ajuelos']],films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara Kids FW20',poster:''}],layout:'single'},
+  {id:'zara-woman-fw19',title:'Zara Woman FW19',credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Stuart Dryburgh'],['Styling','Karl Templer'],['Edit','Will Town'],['Color','Tim Masick'],['VFX','Nightshift']],films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara Woman FW19',poster:''}],layout:'single'},
+  {id:'zara-man-fw19',title:'Zara Man FW19',credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Benoit delHomme'],['Styling','Karl Templer'],['Edit','Will Town'],['Color','Tim Masick'],['VFX','Nightshift'],['Music','Future Perfect']],films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara Man FW19',poster:''}],layout:'single'},
+  {id:'zara-woman-ss19',title:'Zara Woman SS19',credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Stuart Dryburgh'],['Styling','Karl Templer'],['Edit','Will Town'],['Color','Tim Masick'],['VFX','Modern Post'],['Music','Future Perfect']],films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara Woman SS19',poster:''}],layout:'single'},
+  {id:'zara-man-ss19',title:'Zara Man SS19',credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Janusz Kaminski'],['Styling','Karl Templer'],['Edit','Will Town'],['Color','Tim Masick'],['VFX','Modern Post'],['Music','Broken English Club']],films:[{provider:'vimeo',id:'VIDEO_ID',label:'Zara Man SS19',poster:''}],layout:'single'}
 ];
-
 initClientPage(PROJECTS);
 </script>
-</body>
-</html>
+</body></html>
