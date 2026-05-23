@@ -73,7 +73,6 @@ function teardownAllInSlide(slideEl, project) {
   });
 }
 
-/* ---- DESKTOP render ---- */
 function renderDesktop(projects, indexLabel) {
   const el = document.getElementById('projects');
   el.innerHTML = projects.map(p => {
@@ -92,7 +91,7 @@ function renderDesktop(projects, indexLabel) {
   }).join('');
 
   document.getElementById('indexList').innerHTML = projects.map(p =>
-    `<li><a href="#${p.id}">${p.title.replace(/<[^>]+>/g,'').replace(/[""]/g,'')}</a></li>`
+    `<li><a href="#${p.id}">${p.title.replace(/<[^>]+>/g,''').replace(/[""]/g,'')}</a></li>`
   ).join('');
 
   if (indexLabel) {
@@ -110,7 +109,6 @@ function renderDesktop(projects, indexLabel) {
   document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 }
 
-/* ---- MOBILE render ---- */
 function renderMobile(projects) {
   const wrap = document.getElementById('mStory');
   const progressEl = document.getElementById('mProgress');
@@ -139,7 +137,6 @@ function renderMobile(projects) {
     </div>`;
   }).join('');
 
-  /* vertical autoplay per slide */
   projects.forEach((p, pi) => {
     const container = document.getElementById(`vunits-${pi}`);
     if (!container) return;
@@ -161,7 +158,6 @@ function renderMobile(projects) {
     container.querySelectorAll('.m-video-unit').forEach(u => vertObs.observe(u));
   });
 
-  /* horizontal progress + teardown */
   function updateProgress(idx) {
     document.querySelectorAll('.m-seg').forEach((s, i) => {
       s.classList.toggle('done', i < idx);
@@ -186,7 +182,6 @@ function renderMobile(projects) {
   setTimeout(() => hint.classList.add('hidden'), 4000);
 }
 
-/* ---- INIT — called by each page ---- */
 function initClientPage(projects, indexLabel) {
   document.getElementById('year').textContent = new Date().getFullYear();
   renderDesktop(projects, indexLabel);
