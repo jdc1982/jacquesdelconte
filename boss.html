@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hugo Boss — Jacques del Conte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><div class="bar"><a href="index.html" class="back">← All Work</a><a href="index.html" class="home">Jacques del Conte</a><div class="links"><a href="mailto:jacques@jacquesdelconte.com">Contact</a><a href="https://www.linkedin.com/in/jacquesdelconte/" target="_blank" rel="noopener">LinkedIn</a></div></div></header>
+<div class="m-progress" id="mProgress"></div>
+<div class="m-story-wrap" id="mStory"></div>
+<div class="m-nav-hint" id="mNavHint"><span>Swipe</span><span class="arr">→</span></div>
+<main id="projects-desktop">
+  <section class="client-head wrap"><div class="eyebrow">Post Production</div><h1>Hugo Boss</h1></section>
+  <nav class="index wrap"><div class="label">Projects</div><ul id="indexList"></ul></nav>
+  <div id="projects"></div>
+  <section class="pager wrap"><div class="pager-inner">
+    <a href="nars.html" class="prev"><div class="lbl">Previous</div><div class="nm">Nars</div></a>
+    <a href="zara.html" class="next"><div class="lbl">Next</div><div class="nm">Zara →</div></a>
+  </div></section>
+</main>
+<footer class="wrap"><a class="mail" href="mailto:jacques@jacquesdelconte.com">jacques@jacquesdelconte.com</a><div class="copy">© <span id="year"></span> Jacques del Conte — Executive Producer &amp; Post Production Consultant</div></footer>
+<script src="client.js"></script>
+<script>
+const PROJECTS=[{id:'boss-fw19-gallery',title:'Boss FW19 &quot;Gallery&quot;',credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Benoit delHomme'],['Edit','Will Town'],['Color','Tim Masick'],['VFX','Modern Post'],['Music','Nils Frahm']],films:[{provider:'vimeo',id:'356951549',label:'Boss FW19 Gallery',poster:''}],layout:'single'},{id:'boss-ss20-duplicity',title:'Boss SS20 &quot;Duplicity&quot;',credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Benoit delHomme'],['Edit','Will Town'],['Color','Tim Masick'],['VFX','Nightshift'],['Music','Future Perfect']],films:[{provider:'vimeo',id:'638677105',label:'Boss SS20 Duplicity',poster:''}],layout:'single'},{id:'boss-ss21',title:'Boss SS21',credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Benoit delHomme'],['Edit','Will Town'],['Color','Tim Masick'],['VFX','Nightshift'],['Music','Future Perfect']],films:[{provider:'vimeo',id:'638386477',label:'Boss SS21',poster:''}],layout:'single'},{id:'boss-meissen-holiday',title:'Boss X Meissen Holiday',credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Benoit delHomme'],['VFX','Nightshift'],['Animation','Esteban Diacono'],['Music','Future Perfect']],films:[{provider:'vimeo',id:'372215531',label:'Boss X Meissen Holiday',poster:''}],layout:'single'},{id:'boss-ss19',title:'Boss SS19',credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['Edit','Will Town'],['VFX','Modern Post'],['Music','Future Perfect'],['Styling','Ludivine Poiblanc']],films:[{provider:'vimeo',id:'325867566',label:'Boss SS19',poster:''}],layout:'single'}];
+initClientPage(PROJECTS,'Projects');
+</script>
+</body></html>
