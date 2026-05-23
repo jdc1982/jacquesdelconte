@@ -11,7 +11,6 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
 <header id="site-header">
   <div class="bar">
     <a href="index.html" class="home">Jacques del Conte</a>
@@ -22,7 +21,6 @@
     </div>
   </div>
 </header>
-
 <main>
   <section class="home-hero">
     <h1 class="fade d1">Jacques del Conte</h1>
@@ -30,7 +28,6 @@
     <div class="rule fade d3"></div>
     <div class="scroll-cue fade d4">Selected Work<span class="arrow">↓</span></div>
   </section>
-
   <section id="work" class="work wrap">
     <div class="work-head reveal">
       <h2>Selected Work</h2>
@@ -55,7 +52,6 @@
       <a class="tile reveal" href="crownroyal.html"><img src="https://images.squarespace-cdn.com/content/v1/5dc69cd1f7ee7d08c0363cc5/1635009090912-G60GFY0Z7Q8OMBOEZRY2/CR.jpg" alt="Crown Royal"><div class="cap"><span>Crown Royal</span></div></a>
     </div>
   </section>
-
   <section class="home-foot wrap">
     <div class="home-foot-inner">
       <div class="lead reveal">Let's work together.<br><a href="mailto:jacques@jacquesdelconte.com">jacques@jacquesdelconte.com</a></div>
@@ -67,22 +63,13 @@
     <div class="copy">© <span id="year"></span> Jacques del Conte — Executive Producer &amp; Post Production Consultant</div>
   </section>
 </main>
-
 <script>
-  document.getElementById('year').textContent = new Date().getFullYear();
-
-  // Show header once hero scrolls out
-  const header = document.getElementById('site-header');
-  const hero = document.querySelector('.home-hero');
-  new IntersectionObserver(([e]) => {
-    header.classList.toggle('show', !e.isIntersecting);
-  }, {threshold: 0.15}).observe(hero);
-
-  // Reveal on scroll
-  const io = new IntersectionObserver(entries => {
-    entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }});
-  }, {threshold: 0.1, rootMargin: '0px 0px -6% 0px'});
-  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  document.getElementById('year').textContent=new Date().getFullYear();
+  const header=document.getElementById('site-header');
+  const hero=document.querySelector('.home-hero');
+  new IntersectionObserver(([e])=>{header.classList.toggle('show',!e.isIntersecting)},{threshold:0.15}).observe(hero);
+  const io=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:0.1,rootMargin:'0px 0px -6% 0px'});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 </script>
 </body>
 </html>
