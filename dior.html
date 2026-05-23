@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dior — Jacques del Conte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><div class="bar"><a href="index.html" class="back">← All Work</a><a href="index.html" class="home">Jacques del Conte</a><div class="links"><a href="mailto:jacques@jacquesdelconte.com">Contact</a><a href="https://www.linkedin.com/in/jacquesdelconte/" target="_blank" rel="noopener">LinkedIn</a></div></div></header>
+<div class="m-progress" id="mProgress"></div>
+<div class="m-story-wrap" id="mStory"></div>
+<div class="m-nav-hint" id="mNavHint"><span>Swipe</span><span class="arr">→</span></div>
+<main id="projects-desktop">
+  <section class="client-head wrap"><div class="eyebrow">Post Production</div><h1>Dior</h1></section>
+  <nav class="index wrap"><div class="label">Projects</div><ul id="indexList"></ul></nav>
+  <div id="projects"></div>
+  <section class="pager wrap"><div class="pager-inner">
+    <a href="lv.html" class="prev"><div class="lbl">Previous</div><div class="nm">Louis Vuitton</div></a>
+    <a href="cartier.html" class="next"><div class="lbl">Next</div><div class="nm">Cartier →</div></a>
+  </div></section>
+</main>
+<footer class="wrap"><a class="mail" href="mailto:jacques@jacquesdelconte.com">jacques@jacquesdelconte.com</a><div class="copy">© <span id="year"></span> Jacques del Conte — Executive Producer &amp; Post Production Consultant</div></footer>
+<script src="client.js"></script>
+<script>
+const PROJECTS=[{id:'dior-prefall-2020',title:'Dior PreFall 2020',credits:[['EP of Post','Jacques del Conte'],['Featuring','Jennifer Lawrence'],['Director','Fabien Baron'],['DP','Andre Chemetoff'],['Edit','Graham Patterson'],['Color','Tim Masick'],['Music','Danny Mulhern']],films:[{provider:'vimeo',id:'464059788',label:'Dior PreFall 2020',poster:''}],layout:'single'},{id:'dior-ss21',title:'Dior SS21',credits:[['EP of Post','Jacques del Conte'],['Director','Elina Kechicheva'],['Color','Tim Masick'],['Music','Daniel Mulhurn']],films:[{provider:'vimeo',id:'634777252',label:'Dior SS21',poster:''}],layout:'single'},{id:'dior-9522',title:'Dior 9522 Bag Relaunch',credits:[['EP of Post','Jacques del Conte'],['Director','Brigitte Lacombe']],heroFilm:{provider:'vimeo',id:'1137166167',label:'Campaign Film',poster:''},films:[{provider:'vimeo',id:'1137165382',label:'Anya Taylor-Joy',poster:''},{provider:'vimeo',id:'1137165125',label:'Sharon Eyal',poster:''},{provider:'vimeo',id:'1137165045',label:'Judy Chicago',poster:''},{provider:'vimeo',id:'1137164912',label:'Jisoo',poster:''}],layout:'triple'},{id:'dior-ss23',title:'Dior SS23',credits:[['EP of Post','Jacques del Conte'],['Director','Tanu Muino'],['Edit','Mah Ferraz'],['Color','Tim Masick']],films:[{provider:'vimeo',id:'1137168420',label:'Dior SS23',poster:''}],layout:'single'},{id:'dior-chiffre-rouge',title:'Dior &quot;Chiffre Rouge&quot; Watch',credits:[['EP of Post','Jacques del Conte'],['Edit','Matthieu Lamouche'],['Music','Danny Mulhern']],films:[{provider:'vimeo',id:'1137168022',label:'Chiffre Rouge',poster:''}],layout:'single'},{id:'dior-cruise-23',title:'Dior Cruise 23',credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['Sound','Raphael Ajuelos']],films:[{provider:'vimeo',id:'1137169431',label:'Dior Cruise 23',poster:''}],layout:'single'},{id:'dior-fw21-versailles',title:'Dior FW21 Digital Show',credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron']],films:[{provider:'vimeo',id:'638737257',label:'FW21 at Versailles',poster:''}],layout:'single'},{id:'dior-cruise-2020',title:'Dior Cruise 2020',credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['DP','Benoit delHomme'],['Choreography','Sharon Eyal']],films:[{provider:'vimeo',id:'485594258',label:'Dior Cruise 2020',poster:''}],layout:'single'},{id:'dior-around-the-world',title:'Dior &quot;Around the World&quot; SS22',credits:[['EP of Post','Jacques del Conte'],['Director','Fabien Baron'],['Edit','Will Town']],films:[{provider:'vimeo',id:'1137169730',label:'Around the World',poster:''}],layout:'single'}];
+initClientPage(PROJECTS,'Projects');
+</script>
+</body></html>
