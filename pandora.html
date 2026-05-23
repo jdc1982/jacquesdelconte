@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pandora — Jacques del Conte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><div class="bar"><a href="index.html" class="back">← All Work</a><a href="index.html" class="home">Jacques del Conte</a><div class="links"><a href="mailto:jacques@jacquesdelconte.com">Contact</a><a href="https://www.linkedin.com/in/jacquesdelconte/" target="_blank" rel="noopener">LinkedIn</a></div></div></header>
+<div class="m-progress" id="mProgress"></div>
+<div class="m-story-wrap" id="mStory"></div>
+<div class="m-nav-hint" id="mNavHint"><span>Swipe</span><span class="arr">→</span></div>
+<main id="projects-desktop">
+  <section class="client-head wrap"><div class="eyebrow">Post Production</div><h1>Pandora</h1></section>
+  <nav class="index wrap"><div class="label">Projects</div><ul id="indexList"></ul></nav>
+  <div id="projects"></div>
+  <section class="pager wrap"><div class="pager-inner">
+    <a href="zegna.html" class="prev"><div class="lbl">Previous</div><div class="nm">Zegna</div></a>
+    <a href="lancome.html" class="next"><div class="lbl">Next</div><div class="nm">Lancôme →</div></a>
+  </div></section>
+</main>
+<footer class="wrap"><a class="mail" href="mailto:jacques@jacquesdelconte.com">jacques@jacquesdelconte.com</a><div class="copy">© <span id="year"></span> Jacques del Conte — Executive Producer &amp; Post Production Consultant</div></footer>
+<script src="client.js"></script>
+<script>
+const PROJECTS=[{id:'pandora-holiday',title:'Pandora Holiday Campaign',credits:[['EP of Post','Jacques del Conte'],['Director','Roman Coppola'],['DP','Darius Khondji'],['Edit','Matthieu Lamouche'],['VFX','Mathematic']],films:[{provider:'vimeo',id:'1136511989',label:'Pandora Holiday',poster:''}],layout:'single'},{id:'pandora-diamonds',title:'Pandora Diamonds &quot;Love & Happiness&quot;',credits:[['EP of Post','Jacques del Conte'],['Featuring','Pamela Anderson, Precious Lee & Grace Coddington'],['Director','Gordon Von Steiner'],['Edit','Will Town'],['Color','Tim Masick']],films:[{provider:'vimeo',id:'1129172676',label:'Love & Happiness',poster:''}],layout:'single'},{id:'pandora-be-love',title:'Pandora &quot;Be Love&quot;',credits:[['EP of Post','Jacques del Conte'],['Director','Sophia Nahli Allison'],['Edit','Mah Ferraz']],films:[{provider:'vimeo',id:'1129165514',label:'Be Love',poster:''}],layout:'single'},{id:'pandora-be-love-pii',title:'Pandora &quot;Be Love&quot; — Part II',credits:[['EP of Post','Jacques del Conte'],['Featuring','Winona Ryder, Iman & Vittoria Ceretti'],['Director','Fabien Baron'],['DP','Philip Lesourd'],['Edit','Kevin Tadge'],['Color','Tim Masick']],films:[{provider:'vimeo',id:'1129163259',label:'Be Love Part II',poster:''}],layout:'single'}];
+initClientPage(PROJECTS,'Projects');
+</script>
+</body></html>
