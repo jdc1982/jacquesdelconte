@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zegna — Jacques del Conte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><div class="bar"><a href="index.html" class="back">← All Work</a><a href="index.html" class="home">Jacques del Conte</a><div class="links"><a href="mailto:jacques@jacquesdelconte.com">Contact</a><a href="https://www.linkedin.com/in/jacquesdelconte/" target="_blank" rel="noopener">LinkedIn</a></div></div></header>
+<div class="m-progress" id="mProgress"></div>
+<div class="m-story-wrap" id="mStory"></div>
+<div class="m-nav-hint" id="mNavHint"><span>Swipe</span><span class="arr">→</span></div>
+<main id="projects-desktop">
+  <section class="client-head wrap"><div class="eyebrow">Post Production</div><h1>Zegna</h1></section>
+  <nav class="index wrap"><div class="label">Projects</div><ul id="indexList"></ul></nav>
+  <div id="projects"></div>
+  <section class="pager wrap"><div class="pager-inner">
+    <a href="armani.html" class="prev"><div class="lbl">Previous</div><div class="nm">Armani</div></a>
+    <a href="pandora.html" class="next"><div class="lbl">Next</div><div class="nm">Pandora →</div></a>
+  </div></section>
+</main>
+<footer class="wrap"><a class="mail" href="mailto:jacques@jacquesdelconte.com">jacques@jacquesdelconte.com</a><div class="copy">© <span id="year"></span> Jacques del Conte — Executive Producer &amp; Post Production Consultant</div></footer>
+<script src="client.js"></script>
+<script>
+const PROJECTS=[{id:'zegna-ss20',title:'Zegna SS20 &quot;What Makes a Man&quot;',credits:[['EP of Post','Jacques del Conte'],['Featuring','Mahershala Ali & Nicolas Tse'],['Director','Fabien Baron'],['DP','Maceo Bishop'],['Edit','Graham Patterson'],['Color','Tim Masick']],heroFilm:{provider:'vimeo',id:'389324654',label:'Hero Film',poster:''},films:[{provider:'vimeo',id:'389329970',label:'&quot;Responsibility&quot;',poster:''},{provider:'vimeo',id:'389330022',label:'&quot;Purpose&quot;',poster:''},{provider:'vimeo',id:'389329999',label:'&quot;Hope&quot;',poster:''},{provider:'vimeo',id:'389329942',label:'&quot;Awareness&quot;',poster:''}],layout:'triple'},{id:'zegna-fw19',title:'Zegna FW19',credits:[['EP of Post','Jacques del Conte'],['Featuring','Mahershala Ali'],['Director','Fabien Baron'],['DP','Maceo Bishop'],['Edit','Graham Patterson'],['Color','Tim Masick'],['VFX','Modern Post'],['Music','Emilie Levienaise-Farrouch']],heroFilm:{provider:'vimeo',id:'362373834',label:'&quot;Love&quot;',poster:''},films:[{provider:'vimeo',id:'362373746',label:'&quot;Risk&quot;',poster:''},{provider:'vimeo',id:'362373816',label:'&quot;Care&quot;',poster:''},{provider:'vimeo',id:'362373793',label:'&quot;Move&quot;',poster:''}],layout:'triple'}];
+initClientPage(PROJECTS,'Projects');
+</script>
+</body></html>
