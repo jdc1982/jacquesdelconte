@@ -1,0 +1,199 @@
+/* ============================================================
+   JACQUES DEL CONTE — client page engine
+   Shared by all client pages. Edit once, updates everywhere.
+
+   Each page defines a PROJECTS array and calls initClientPage().
+   ============================================================ */
+
+const playSVG = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+
+function filmShell(f) {
+  const ps = f.poster ? `style="background-image:url('${f.poster}');background-size:cover;background-position:center"` : '';
+  const pc = f.poster ? 'poster' : 'poster empty';
+  return `<div class="video-shell" data-provider="${f.provider}" data-id="${f.id}">
+    <div class="${pc}" ${ps}></div>
+    <div class="play">${playSVG}</div>
+    ${f.label ? `<div class="vlabel">${f.label}</div>` : ''}
+  </div>`;
+}
+
+function creditsHTML(rows) {
+  return '<div class="credit-row">' + rows.map((c, i) =>
+    `<span class="credit ${i===0?'lead':''}"><span class="role">${c[0]}</span><span class="name">${c[1]}</span></span>`
+  ).join('') + '</div>';
+}
+
+function loadVideoAutoplay(shell) {
+  if (shell.querySelector('iframe')) return;
+  const {provider, id} = shell.dataset;
+  if (!id || id === 'VIDEO_ID') return;
+  const src = provider === 'vimeo'
+    ? `https://player.vimeo.com/video/${id}?autoplay=1&muted=1&loop=0&title=0&byline=0&portrait=0`
+    : `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&rel=0`;
+  const iframe = document.createElement('iframe');
+  iframe.src = src;
+  iframe.allow = 'autoplay; fullscreen; picture-in-picture';
+  iframe.allowFullscreen = true;
+  shell.innerHTML = '';
+  shell.appendChild(iframe);
+  shell.style.cursor = 'default';
+}
+
+function loadVideoOnClick(shell) {
+  if (shell.querySelector('iframe')) return;
+  const {provider, id} = shell.dataset;
+  if (!id || id === 'VIDEO_ID') {
+    const l = shell.querySelector('.vlabel'); if (l) l.textContent = 'Add video ID in page data';
+    return;
+  }
+  const src = provider === 'vimeo'
+    ? `https://player.vimeo.com/video/${id}?autoplay=1&title=0&byline=0&portrait=0`
+    : `https://www.youtube.com/embed/${id}?autoplay=1&rel=0`;
+  const iframe = document.createElement('iframe');
+  iframe.src = src;
+  iframe.allow = 'autoplay; fullscreen; picture-in-picture';
+  iframe.allowFullscreen = true;
+  shell.innerHTML = '';
+  shell.appendChild(iframe);
+  shell.style.cursor = 'default';
+}
+
+function teardownVideo(shell, film) {
+  if (!shell.querySelector('iframe')) return;
+  const ps = film && film.poster ? `style="background-image:url('${film.poster}');background-size:cover;background-position:center"` : '';
+  const pc = film && film.poster ? 'poster' : 'poster empty';
+  shell.innerHTML = `<div class="${pc}" ${ps}></div><div class="play">${playSVG}</div>${film && film.label ? `<div class="vlabel">${film.label}</div>` : ''}`;
+  shell.style.cursor = 'pointer';
+}
+
+function teardownAllInSlide(slideEl, project) {
+  if (!project) return;
+  slideEl.querySelectorAll('.video-shell').forEach((shell, fi) => {
+    teardownVideo(shell, project.films[fi]);
+  });
+}
+
+/* ---- DESKTOP render ---- */
+function renderDesktop(projects, indexLabel) {
+  const el = document.getElementById('projects');
+  el.innerHTML = projects.map(p => {
+    let films = '';
+    if (p.heroFilm) films += `<div class="films single">${filmShell(p.heroFilm)}</div>`;
+    films += `<div class="films ${p.layout}">${p.films.map(filmShell).join('')}</div>`;
+    return `<section class="project" id="${p.id}">
+      <div class="wrap">
+        <div class="p-head reveal">
+          <h2 class="p-title">${p.title}</h2>
+          <div class="credits">${creditsHTML(p.credits)}</div>
+        </div>
+        <div class="reveal">${films}</div>
+      </div>
+    </section>`;
+  }).join('');
+
+  document.getElementById('indexList').innerHTML = projects.map(p =>
+    `<li><a href="#${p.id}">${p.title.replace(/<[^>]+>/g,'').replace(/[""]/g,'')}</a></li>`
+  ).join('');
+
+  if (indexLabel) {
+    const labelEl = document.querySelector('.index .label');
+    if (labelEl) labelEl.textContent = indexLabel;
+  }
+
+  el.addEventListener('click', e => {
+    const s = e.target.closest('.video-shell'); if (s) loadVideoOnClick(s);
+  });
+
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(en => { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }});
+  }, {threshold: 0.08, rootMargin: '0px 0px -5% 0px'});
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+}
+
+/* ---- MOBILE render ---- */
+function renderMobile(projects) {
+  const wrap = document.getElementById('mStory');
+  const progressEl = document.getElementById('mProgress');
+  const hint = document.getElementById('mNavHint');
+
+  progressEl.innerHTML = projects.map((_, i) => `<div class="m-seg" id="seg-${i}"></div>`).join('');
+
+  wrap.innerHTML = projects.map((p, pi) => {
+    const n = p.films.length + (p.heroFilm ? 1 : 0);
+    const allFilms = [
+      ...(p.heroFilm ? [p.heroFilm] : []),
+      ...p.films
+    ];
+    const unitsHTML = allFilms.map((f, fi) =>
+      `<div class="m-video-unit" data-pi="${pi}" data-fi="${fi}">${filmShell(f)}</div>`
+    ).join('');
+
+    return `<div class="m-slide" data-idx="${pi}">
+      <div class="m-slide-info">
+        <div class="m-title">${p.title}</div>
+        ${creditsHTML(p.credits)}
+      </div>
+      <div class="m-video-units" id="vunits-${pi}" style="--unit-count:${n}">
+        ${unitsHTML}
+      </div>
+    </div>`;
+  }).join('');
+
+  /* vertical autoplay per slide */
+  projects.forEach((p, pi) => {
+    const container = document.getElementById(`vunits-${pi}`);
+    if (!container) return;
+    const allFilms = [...(p.heroFilm ? [p.heroFilm] : []), ...p.films];
+
+    const vertObs = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        const fi = +entry.target.dataset.fi;
+        const shell = entry.target.querySelector('.video-shell');
+        if (!shell) return;
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+          loadVideoAutoplay(shell);
+        } else {
+          teardownVideo(shell, allFilms[fi]);
+        }
+      });
+    }, {root: container, threshold: 0.5});
+
+    container.querySelectorAll('.m-video-unit').forEach(u => vertObs.observe(u));
+  });
+
+  /* horizontal progress + teardown */
+  function updateProgress(idx) {
+    document.querySelectorAll('.m-seg').forEach((s, i) => {
+      s.classList.toggle('done', i < idx);
+      s.classList.toggle('active', i === idx);
+    });
+    if (idx > 0) hint.classList.add('hidden');
+  }
+  updateProgress(0);
+
+  const enterObs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) updateProgress(+e.target.dataset.idx); });
+  }, {root: wrap, threshold: 0.5});
+
+  const leaveObs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) teardownAllInSlide(e.target, projects[+e.target.dataset.idx]);
+    });
+  }, {root: wrap, threshold: 0});
+
+  wrap.querySelectorAll('.m-slide').forEach(s => { enterObs.observe(s); leaveObs.observe(s); });
+  wrap.addEventListener('click', e => { const s = e.target.closest('.video-shell'); if (s) loadVideoOnClick(s); });
+  setTimeout(() => hint.classList.add('hidden'), 4000);
+}
+
+/* ---- INIT — called by each page ---- */
+function initClientPage(projects, indexLabel) {
+  document.getElementById('year').textContent = new Date().getFullYear();
+  renderDesktop(projects, indexLabel);
+  if (window.innerWidth <= 768) renderMobile(projects);
+  let lastMobile = window.innerWidth <= 768;
+  window.addEventListener('resize', () => {
+    const now = window.innerWidth <= 768;
+    if (now !== lastMobile) { lastMobile = now; if (now) renderMobile(projects); }
+  });
+}
