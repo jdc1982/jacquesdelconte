@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Armani — Jacques del Conte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><div class="bar"><a href="index.html" class="back">← All Work</a><a href="index.html" class="home">Jacques del Conte</a><div class="links"><a href="mailto:jacques@jacquesdelconte.com">Contact</a><a href="https://www.linkedin.com/in/jacquesdelconte/" target="_blank" rel="noopener">LinkedIn</a></div></div></header>
+<div class="m-progress" id="mProgress"></div>
+<div class="m-story-wrap" id="mStory"></div>
+<div class="m-nav-hint" id="mNavHint"><span>Swipe</span><span class="arr">→</span></div>
+<main id="projects-desktop">
+  <section class="client-head wrap"><div class="eyebrow">Post Production</div><h1>Armani</h1></section>
+  <nav class="index wrap"><div class="label">Projects</div><ul id="indexList"></ul></nav>
+  <div id="projects"></div>
+  <section class="pager wrap"><div class="pager-inner">
+    <a href="mugler.html" class="prev"><div class="lbl">Previous</div><div class="nm">Mugler</div></a>
+    <a href="zegna.html" class="next"><div class="lbl">Next</div><div class="nm">Zegna →</div></a>
+  </div></section>
+</main>
+<footer class="wrap"><a class="mail" href="mailto:jacques@jacquesdelconte.com">jacques@jacquesdelconte.com</a><div class="copy">© <span id="year"></span> Jacques del Conte — Executive Producer &amp; Post Production Consultant</div></footer>
+<script src="client.js"></script>
+<script>
+const PROJECTS=[{id:'armani-beauty',title:'Armani Beauty',credits:[['EP of Post','Jacques del Conte'],['Director','Solve Sundsbo'],['Edit','Mah Ferraz'],['Music','Shygirl']],films:[{provider:'vimeo',id:'1136829516',label:'Armani Beauty — Film 1',poster:''},{provider:'vimeo',id:'1136829368',label:'Armani Beauty — Film 2',poster:''}],layout:'single'}];
+initClientPage(PROJECTS,'Projects');
+</script>
+</body></html>
