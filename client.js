@@ -10,121 +10,76 @@ const fsSVG     = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5
 const rw15SVG   = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6h-2c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/><text x="7.5" y="15.5" font-size="5.5" font-family="sans-serif" font-weight="700" fill="currentColor">15</text></svg>`;
 const ff15SVG   = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.01 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"/><text x="7.5" y="15.5" font-size="5.5" font-family="sans-serif" font-weight="700" fill="currentColor">15</text></svg>`;
 
-/* ── Thumbnail fetching ───────────────────────────────────── */
-async function fetchVimeoThumb(id) {
-  try {
-    const res = await fetch(`https://vimeo.com/api/v2/video/${id}.json`);
-    const data = await res.json();
-    return data[0].thumbnail_large || data[0].thumbnail_medium || '';
-  } catch { return ''; }
-}
-
-function youtubeThumb(id) {
-  return `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
-}
-
-async function loadAllThumbnails(projects) {
+/* ── Thumbnails ───────────────────────────────────────────── */
+async function loadAllThumbnails() {
   const shells = document.querySelectorAll('.video-shell');
-  const fetches = [];
-
-  shells.forEach(shell => {
+  await Promise.allSettled([...shells].map(async shell => {
     const { provider, id } = shell.dataset;
     if (!id || id === 'VIDEO_ID') return;
-    const poster = shell.querySelector('.poster, .poster.empty');
-
+    let url = '';
     if (provider === 'youtube') {
-      const url = youtubeThumb(id);
-      if (poster) {
-        poster.style.backgroundImage = `url('${url}')`;
-        poster.style.backgroundSize = 'cover';
-        poster.style.backgroundPosition = 'center';
-        poster.classList.remove('empty');
-        poster.classList.add('poster');
-      }
-    } else if (provider === 'vimeo') {
-      fetches.push(
-        fetchVimeoThumb(id).then(url => {
-          if (!url) return;
-          // re-query in case DOM updated
-          const s = document.querySelector(`.video-shell[data-id="${id}"]`);
-          if (!s) return;
-          const p = s.querySelector('.poster, .poster.empty');
-          if (p) {
-            p.style.backgroundImage = `url('${url}')`;
-            p.style.backgroundSize = 'cover';
-            p.style.backgroundPosition = 'center';
-            p.classList.remove('empty');
-            p.classList.add('poster');
-          }
-        })
-      );
+      url = `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
+    } else {
+      try {
+        const res  = await fetch(`https://vimeo.com/api/v2/video/${id}.json`);
+        const data = await res.json();
+        url = data[0].thumbnail_large || data[0].thumbnail_medium || '';
+      } catch {}
     }
-  });
-
-  await Promise.allSettled(fetches);
+    if (!url) return;
+    // store on dataset for teardown reuse
+    shell.dataset.thumbUrl = url;
+    const p = shell.querySelector('.poster, .poster.empty');
+    if (p) {
+      p.style.cssText = `background-image:url('${url}');background-size:cover;background-position:center`;
+      p.className = 'poster';
+    }
+  }));
 }
 
-/* ── Vimeo postMessage bridge ─────────────────────────────── */
+/* ── Vimeo bridge ─────────────────────────────────────────── */
 function vimeoPost(iframe, method, value) {
   if (!iframe) return;
   iframe.contentWindow.postMessage(JSON.stringify({ method, value }), '*');
 }
 
-/* ── Custom control bar ───────────────────────────────────── */
+/* ── Controls ─────────────────────────────────────────────── */
 function buildControls(shell, startMuted) {
   shell.querySelectorAll('.jdc-ctrl').forEach(el => el.remove());
   const ctrl = document.createElement('div');
   ctrl.className = 'jdc-ctrl';
   ctrl.innerHTML = `
-    <button class="jdc-btn" data-action="rw"   title="-15s">${rw15SVG}</button>
-    <button class="jdc-btn jdc-play" data-action="play" title="Play/Pause">${pauseSVG}</button>
-    <button class="jdc-btn" data-action="ff"   title="+15s">${ff15SVG}</button>
-    <button class="jdc-btn" data-action="fs"   title="Fullscreen">${fsSVG}</button>
-    <button class="jdc-btn jdc-mute" data-action="mute" title="Mute/Unmute">${startMuted ? muteSVG : unmuteSVG}</button>
-  `;
+    <button class="jdc-btn" data-action="rw">${rw15SVG}</button>
+    <button class="jdc-btn jdc-play" data-action="play">${pauseSVG}</button>
+    <button class="jdc-btn" data-action="ff">${ff15SVG}</button>
+    <button class="jdc-btn" data-action="fs">${fsSVG}</button>
+    <button class="jdc-btn jdc-mute" data-action="mute">${startMuted ? muteSVG : unmuteSVG}</button>`;
   shell.appendChild(ctrl);
-
-  let playing = true;
-  let muted   = !!startMuted;
-
+  let playing = true, muted = !!startMuted;
   ctrl.addEventListener('click', e => {
     e.stopPropagation();
-    const btn = e.target.closest('[data-action]');
-    if (!btn) return;
-    const iframe = shell.querySelector('iframe');
-    if (!iframe) return;
+    const btn = e.target.closest('[data-action]'); if (!btn) return;
+    const iframe = shell.querySelector('iframe'); if (!iframe) return;
     switch (btn.dataset.action) {
       case 'play':
         playing ? vimeoPost(iframe,'pause') : vimeoPost(iframe,'play');
-        playing = !playing;
-        btn.innerHTML = playing ? pauseSVG : playSVG;
-        break;
-      case 'rw':
-        shell._pendingSeek = -15;
-        vimeoPost(iframe, 'getCurrentTime');
-        break;
-      case 'ff':
-        shell._pendingSeek = 15;
-        vimeoPost(iframe, 'getCurrentTime');
-        break;
+        playing = !playing; btn.innerHTML = playing ? pauseSVG : playSVG; break;
+      case 'rw': shell._seek=-15; vimeoPost(iframe,'getCurrentTime'); break;
+      case 'ff': shell._seek= 15; vimeoPost(iframe,'getCurrentTime'); break;
       case 'fs':
         if (iframe.requestFullscreen) iframe.requestFullscreen();
-        else if (iframe.webkitRequestFullscreen) iframe.webkitRequestFullscreen();
-        break;
+        else if (iframe.webkitRequestFullscreen) iframe.webkitRequestFullscreen(); break;
       case 'mute':
-        muted = !muted;
-        vimeoPost(iframe, 'setVolume', muted ? 0 : 1);
-        btn.innerHTML = muted ? muteSVG : unmuteSVG;
-        break;
+        muted=!muted; vimeoPost(iframe,'setVolume',muted?0:1);
+        btn.innerHTML = muted ? muteSVG : unmuteSVG; break;
     }
   });
-
   window.addEventListener('message', e => {
     try {
-      const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-      if (data.method === 'getCurrentTime' && shell._pendingSeek !== undefined) {
-        vimeoPost(shell.querySelector('iframe'), 'setCurrentTime', Math.max(0,(data.value||0)+shell._pendingSeek));
-        delete shell._pendingSeek;
+      const d = typeof e.data==='string'?JSON.parse(e.data):e.data;
+      if (d.method==='getCurrentTime' && shell._seek!==undefined) {
+        vimeoPost(shell.querySelector('iframe'),'setCurrentTime',Math.max(0,(d.value||0)+shell._seek));
+        delete shell._seek;
       }
     } catch {}
   });
@@ -132,10 +87,8 @@ function buildControls(shell, startMuted) {
 
 /* ── Shell HTML ───────────────────────────────────────────── */
 function filmShell(f) {
-  const ps = f.poster ? `style="background-image:url('${f.poster}');background-size:cover;background-position:center"` : '';
-  const pc = f.poster ? 'poster' : 'poster empty';
   return `<div class="video-shell" data-provider="${f.provider}" data-id="${f.id}" data-label="${f.label||''}">
-    <div class="${pc}" ${ps}></div>
+    <div class="poster empty"></div>
     <div class="play-hint"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
   </div>`;
 }
@@ -147,13 +100,13 @@ function creditsHTML(rows) {
 }
 
 /* ── Inject / teardown ────────────────────────────────────── */
-function injectIframe(shell, autoplay, muted) {
+function injectIframe(shell, muted) {
   if (shell.querySelector('iframe')) return;
   const { provider, id } = shell.dataset;
-  if (!id || id === 'VIDEO_ID') return;
-  const src = provider === 'vimeo'
-    ? `https://player.vimeo.com/video/${id}?autoplay=${autoplay?1:0}&muted=${muted?1:0}&autopause=0&controls=0&title=0&byline=0&portrait=0&loop=0`
-    : `https://www.youtube.com/embed/${id}?autoplay=${autoplay?1:0}&mute=${muted?1:0}&rel=0&controls=0`;
+  if (!id || id==='VIDEO_ID') return;
+  const src = provider==='vimeo'
+    ? `https://player.vimeo.com/video/${id}?autoplay=1&muted=${muted?1:0}&autopause=0&controls=0&title=0&byline=0&portrait=0&loop=0`
+    : `https://www.youtube.com/embed/${id}?autoplay=1&mute=${muted?1:0}&rel=0&controls=0`;
   const iframe = document.createElement('iframe');
   iframe.src = src;
   iframe.allow = 'autoplay; fullscreen; picture-in-picture';
@@ -164,23 +117,21 @@ function injectIframe(shell, autoplay, muted) {
   buildControls(shell, muted);
 }
 
-function teardownShell(shell, posterUrl) {
-  const iframe = shell.querySelector('iframe');
-  if (!iframe) return;
+function teardownShell(shell) {
+  const iframe = shell.querySelector('iframe'); if (!iframe) return;
   iframe.src = ''; // kill audio instantly
-  const ps = posterUrl ? `style="background-image:url('${posterUrl}');background-size:cover;background-position:center"` : '';
-  const pc = posterUrl ? 'poster' : 'poster empty';
+  const url = shell.dataset.thumbUrl || '';
+  const ps  = url ? `style="background-image:url('${url}');background-size:cover;background-position:center"` : '';
+  const pc  = url ? 'poster' : 'poster empty';
   shell.innerHTML = `<div class="${pc}" ${ps}></div><div class="play-hint"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>`;
   shell.style.cursor = 'pointer';
 }
 
-function teardownAllInSlide(slideEl, project) {
-  if (!project) return;
-  const allFilms = [...(project.heroFilm ? [project.heroFilm] : []), ...project.films];
-  slideEl.querySelectorAll('.video-shell').forEach((s, i) => teardownShell(s, allFilms[i]?.poster||''));
+function teardownAllInSlide(slideEl) {
+  slideEl.querySelectorAll('.video-shell').forEach(teardownShell);
 }
 
-/* ── DESKTOP render ───────────────────────────────────────── */
+/* ── DESKTOP ──────────────────────────────────────────────── */
 function renderDesktop(projects, indexLabel) {
   const el = document.getElementById('projects');
   el.innerHTML = projects.map(p => {
@@ -189,39 +140,30 @@ function renderDesktop(projects, indexLabel) {
     films += `<div class="films ${p.layout}">${p.films.map(filmShell).join('')}</div>`;
     return `<section class="project" id="${p.id}">
       <div class="wrap">
-        <div class="p-head reveal">
-          <h2 class="p-title">${p.title}</h2>
-          <div class="credits">${creditsHTML(p.credits)}</div>
-        </div>
+        <div class="p-head reveal"><h2 class="p-title">${p.title}</h2><div class="credits">${creditsHTML(p.credits)}</div></div>
         <div class="reveal">${films}</div>
-      </div>
-    </section>`;
+      </div></section>`;
   }).join('');
 
   document.getElementById('indexList').innerHTML = projects.map(p =>
     `<li><a href="#${p.id}">${p.title.replace(/<[^>]+>/g,'').replace(/[""]/g,'')}</a></li>`
   ).join('');
-  if (indexLabel) { const l = document.querySelector('.index .label'); if(l) l.textContent = indexLabel; }
+  if (indexLabel) { const l=document.querySelector('.index .label'); if(l) l.textContent=indexLabel; }
 
-  // Fetch thumbnails after DOM is ready
-  loadAllThumbnails(projects);
+  loadAllThumbnails();
 
-  // Desktop: scroll into view → autoplay muted; scroll out → teardown
-  const desktopObs = new IntersectionObserver(entries => {
+  // Desktop: scroll into view → autoplay muted; out → teardown
+  const obs = new IntersectionObserver(entries => {
     entries.forEach(entry => {
       const shell = entry.target;
       if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
-        injectIframe(shell, true, true); // autoplay muted
+        injectIframe(shell, true);
       } else {
-        // get poster url from current background if set
-        const p = shell.querySelector('.poster');
-        const bg = p ? p.style.backgroundImage.replace(/url\(["']?|["']?\)/g,'') : '';
-        teardownShell(shell, bg);
+        teardownShell(shell);
       }
     });
   }, { threshold: 0.5 });
-
-  el.querySelectorAll('.video-shell').forEach(s => desktopObs.observe(s));
+  el.querySelectorAll('.video-shell').forEach(s => obs.observe(s));
 
   const revealObs = new IntersectionObserver(entries => {
     entries.forEach(en => { if(en.isIntersecting){ en.target.classList.add('in'); revealObs.unobserve(en.target); }});
@@ -229,7 +171,7 @@ function renderDesktop(projects, indexLabel) {
   document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
 }
 
-/* ── MOBILE render ────────────────────────────────────────── */
+/* ── MOBILE ───────────────────────────────────────────────── */
 function renderMobile(projects) {
   const wrap       = document.getElementById('mStory');
   const progressEl = document.getElementById('mProgress');
@@ -238,53 +180,60 @@ function renderMobile(projects) {
   progressEl.innerHTML = projects.map((_,i) => `<div class="m-seg" id="seg-${i}"></div>`).join('');
 
   wrap.innerHTML = projects.map((p, pi) => {
-    const allFilms = [...(p.heroFilm ? [p.heroFilm] : []), ...p.films];
+    const allFilms = [...(p.heroFilm?[p.heroFilm]:[]),...p.films];
     const n = allFilms.length;
-    const unitsHTML = allFilms.map((f, fi) =>
+    const units = allFilms.map((f,fi) =>
       `<div class="m-video-unit" data-pi="${pi}" data-fi="${fi}">${filmShell(f)}</div>`
     ).join('');
     return `<div class="m-slide" data-idx="${pi}">
-      <div class="m-slide-info">
-        <div class="m-title">${p.title}</div>
-        ${creditsHTML(p.credits)}
-      </div>
-      <div class="m-video-units" id="vunits-${pi}" style="--unit-count:${n}">
-        ${unitsHTML}
-      </div>
+      <div class="m-slide-info"><div class="m-title">${p.title}</div>${creditsHTML(p.credits)}</div>
+      <div class="m-video-units" id="vunits-${pi}" style="--unit-count:${n}">${units}</div>
     </div>`;
   }).join('');
 
-  // Fetch thumbnails for mobile too
-  loadAllThumbnails(projects);
+  loadAllThumbnails();
 
-  // Vertical snap autoplay (muted) per slide
-  projects.forEach((p, pi) => {
+  // ── helpers ────────────────────────────────────────────────
+  function getActiveUnit(container) {
+    // find the unit whose top is closest to the container's scrollTop
+    const units = [...container.querySelectorAll('.m-video-unit')];
+    const scroll = container.scrollTop;
+    const height = container.clientHeight;
+    return units.find(u => {
+      const top = u.offsetTop;
+      const bot = top + u.offsetHeight;
+      return top <= scroll + height * 0.6 && bot >= scroll + height * 0.4;
+    }) || units[0];
+  }
+
+  function activateUnit(container, unit) {
+    if (!unit) return;
+    // tear down all other shells in this container first
+    container.querySelectorAll('.video-shell').forEach(s => {
+      if (s !== unit.querySelector('.video-shell')) teardownShell(s);
+    });
+    const shell = unit.querySelector('.video-shell');
+    if (shell) injectIframe(shell, true); // autoplay muted
+  }
+
+  // ── per-slide vertical scroll handler ──────────────────────
+  projects.forEach((_, pi) => {
     const container = document.getElementById(`vunits-${pi}`);
     if (!container) return;
-    const allFilms = [...(p.heroFilm ? [p.heroFilm] : []), ...p.films];
-
-    const vertObs = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        const fi    = +entry.target.dataset.fi;
-        const shell = entry.target.querySelector('.video-shell');
-        if (!shell) return;
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
-          injectIframe(shell, true, true); // autoplay muted
-        } else {
-          const p2 = shell.querySelector('.poster');
-          const bg = p2 ? p2.style.backgroundImage.replace(/url\(["']?|["']?\)/g,'') : '';
-          teardownShell(shell, bg);
-        }
-      });
-    }, { root: container, threshold: 0.5 });
-
-    container.querySelectorAll('.m-video-unit').forEach(u => vertObs.observe(u));
+    let vTimer = null;
+    container.addEventListener('scroll', () => {
+      // tear down everything while scrolling
+      container.querySelectorAll('.video-shell').forEach(teardownShell);
+      clearTimeout(vTimer);
+      vTimer = setTimeout(() => {
+        activateUnit(container, getActiveUnit(container));
+      }, 120);
+    }, { passive: true });
   });
 
-  // Horizontal scroll: tear down off-screen slides instantly
-  let currentSlideIdx = 0;
-  let scrollTimer = null;
-  const slideWidth = window.innerWidth;
+  // ── horizontal slide tracking ──────────────────────────────
+  let activeIdx = 0;
+  let hTimer = null;
 
   function updateProgress(idx) {
     document.querySelectorAll('.m-seg').forEach((s,i) => {
@@ -293,21 +242,38 @@ function renderMobile(projects) {
     });
     if (idx > 0) hint.classList.add('hidden');
   }
-  updateProgress(0);
+
+  function activateSlide(idx) {
+    // tear down every other slide
+    wrap.querySelectorAll('.m-slide').forEach((slide, i) => {
+      if (i !== idx) teardownAllInSlide(slide);
+    });
+    // autoplay first video in the new active slide
+    const container = document.getElementById(`vunits-${idx}`);
+    if (!container) return;
+    const firstUnit = container.querySelector('.m-video-unit');
+    activateUnit(container, firstUnit);
+    updateProgress(idx);
+  }
 
   wrap.addEventListener('scroll', () => {
-    const scrollLeft = wrap.scrollLeft;
-    const newIdx = Math.round(scrollLeft / slideWidth);
+    const newIdx = Math.round(wrap.scrollLeft / window.innerWidth);
+    // immediately kill audio on slides being swiped away
     wrap.querySelectorAll('.m-slide').forEach((slide, i) => {
-      if (i !== newIdx) teardownAllInSlide(slide, projects[i]);
+      if (i !== newIdx) teardownAllInSlide(slide);
     });
-    clearTimeout(scrollTimer);
-    scrollTimer = setTimeout(() => {
-      currentSlideIdx = Math.round(wrap.scrollLeft / slideWidth);
-      updateProgress(currentSlideIdx);
-    }, 80);
+    clearTimeout(hTimer);
+    hTimer = setTimeout(() => {
+      const settled = Math.round(wrap.scrollLeft / window.innerWidth);
+      if (settled !== activeIdx) {
+        activeIdx = settled;
+        activateSlide(activeIdx);
+      }
+    }, 120);
   }, { passive: true });
 
+  // activate first slide on load
+  setTimeout(() => activateSlide(0), 300);
   setTimeout(() => hint.classList.add('hidden'), 4000);
 }
 
