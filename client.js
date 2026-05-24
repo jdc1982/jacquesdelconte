@@ -27,9 +27,8 @@ async function loadAllThumbnails() {
       } catch {}
     }
     if (!url) return;
-    // store on dataset for teardown reuse
     shell.dataset.thumbUrl = url;
-    const p = shell.querySelector('.poster, .poster.empty');
+    const p = shell.querySelector('.poster,.poster.empty');
     if (p) {
       p.style.cssText = `background-image:url('${url}');background-size:cover;background-position:center`;
       p.className = 'poster';
@@ -119,7 +118,7 @@ function injectIframe(shell, muted) {
 
 function teardownShell(shell) {
   const iframe = shell.querySelector('iframe'); if (!iframe) return;
-  iframe.src = ''; // kill audio instantly
+  iframe.src = '';
   const url = shell.dataset.thumbUrl || '';
   const ps  = url ? `style="background-image:url('${url}');background-size:cover;background-position:center"` : '';
   const pc  = url ? 'poster' : 'poster empty';
@@ -131,18 +130,109 @@ function teardownAllInSlide(slideEl) {
   slideEl.querySelectorAll('.video-shell').forEach(teardownShell);
 }
 
-/* ── DESKTOP ──────────────────────────────────────────────── */
+/* ── Desktop horizontal scroller for multi-film projects ─── */
+function initHScroller(scroller, shells) {
+  const dots = scroller.parentElement.querySelector('.hscroll-dots');
+  const slotWidth = () => scroller.clientWidth;
+  let activeIdx = 0;
+  let scrollTimer = null;
+
+  // drag-to-scroll
+  let isDragging = false, startX = 0, startScroll = 0;
+  scroller.addEventListener('mousedown', e => {
+    isDragging = true; startX = e.pageX; startScroll = scroller.scrollLeft;
+    scroller.style.userSelect = 'none';
+  });
+  window.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    scroller.scrollLeft = startScroll - (e.pageX - startX);
+  });
+  window.addEventListener('mouseup', () => { isDragging = false; scroller.style.userSelect = ''; });
+
+  function updateDots(idx) {
+    if (!dots) return;
+    dots.querySelectorAll('.hscroll-dot').forEach((d,i) => d.classList.toggle('active', i===idx));
+  }
+
+  function activateSlot(idx) {
+    shells.forEach((s, i) => { if (i !== idx) teardownShell(s); });
+    injectIframe(shells[idx], true); // autoplay muted on desktop
+    updateDots(idx);
+  }
+
+  scroller.addEventListener('scroll', () => {
+    // tear down all while scrolling
+    shells.forEach(teardownShell);
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(() => {
+      activeIdx = Math.round(scroller.scrollLeft / slotWidth());
+      activateSlot(activeIdx);
+    }, 150);
+  }, { passive: true });
+
+  // dot clicks
+  if (dots) {
+    dots.querySelectorAll('.hscroll-dot').forEach((dot, i) => {
+      dot.addEventListener('click', () => {
+        scroller.scrollTo({ left: i * slotWidth(), behavior: 'smooth' });
+      });
+    });
+  }
+
+  // IntersectionObserver: autoplay first slot when scroller enters viewport
+  const viewObs = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        activateSlot(activeIdx);
+        viewObs.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.5 });
+  viewObs.observe(scroller);
+
+  // tear down when scroller leaves viewport
+  const leaveObs = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) shells.forEach(teardownShell);
+    });
+  }, { threshold: 0 });
+  leaveObs.observe(scroller);
+}
+
+/* ── DESKTOP render ───────────────────────────────────────── */
 function renderDesktop(projects, indexLabel) {
   const el = document.getElementById('projects');
+
   el.innerHTML = projects.map(p => {
-    let films = '';
-    if (p.heroFilm) films += `<div class="films single">${filmShell(p.heroFilm)}</div>`;
-    films += `<div class="films ${p.layout}">${p.films.map(filmShell).join('')}</div>`;
+    const allFilms = [...(p.heroFilm ? [p.heroFilm] : []), ...p.films];
+    const isMulti  = allFilms.length > 1;
+
+    let filmsHTML = '';
+    if (isMulti) {
+      // horizontal scroller — one slot per film
+      const slots = allFilms.map(f =>
+        `<div class="hslot">${filmShell(f)}</div>`
+      ).join('');
+      const dotBtns = allFilms.map((_,i) =>
+        `<button class="hscroll-dot${i===0?' active':''}" aria-label="Film ${i+1}"></button>`
+      ).join('');
+      filmsHTML = `
+        <div class="films-hscroll" id="hscroll-${p.id}">${slots}</div>
+        <div class="hscroll-dots">${dotBtns}</div>`;
+    } else {
+      // single film — plain shell, full width
+      filmsHTML = `<div class="films single">${filmShell(allFilms[0])}</div>`;
+    }
+
     return `<section class="project" id="${p.id}">
       <div class="wrap">
-        <div class="p-head reveal"><h2 class="p-title">${p.title}</h2><div class="credits">${creditsHTML(p.credits)}</div></div>
-        <div class="reveal">${films}</div>
-      </div></section>`;
+        <div class="p-head reveal">
+          <h2 class="p-title">${p.title}</h2>
+          <div class="credits">${creditsHTML(p.credits)}</div>
+        </div>
+        <div class="reveal">${filmsHTML}</div>
+      </div>
+    </section>`;
   }).join('');
 
   document.getElementById('indexList').innerHTML = projects.map(p =>
@@ -150,20 +240,28 @@ function renderDesktop(projects, indexLabel) {
   ).join('');
   if (indexLabel) { const l=document.querySelector('.index .label'); if(l) l.textContent=indexLabel; }
 
-  loadAllThumbnails();
+  // Init horizontal scrollers
+  projects.forEach(p => {
+    const allFilms = [...(p.heroFilm ? [p.heroFilm] : []), ...p.films];
+    if (allFilms.length <= 1) return;
+    const scroller = document.getElementById(`hscroll-${p.id}`);
+    if (!scroller) return;
+    const shells = [...scroller.querySelectorAll('.video-shell')];
+    initHScroller(scroller, shells);
+  });
 
-  // Desktop: scroll into view → autoplay muted; out → teardown
-  const obs = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      const shell = entry.target;
-      if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
-        injectIframe(shell, true);
-      } else {
-        teardownShell(shell);
-      }
-    });
-  }, { threshold: 0.5 });
-  el.querySelectorAll('.video-shell').forEach(s => obs.observe(s));
+  // Single-film desktop autoplay via IntersectionObserver
+  el.querySelectorAll('.films.single .video-shell').forEach(shell => {
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting && e.intersectionRatio >= 0.5) injectIframe(shell, true);
+        else teardownShell(shell);
+      });
+    }, { threshold: 0.5 });
+    obs.observe(shell);
+  });
+
+  loadAllThumbnails();
 
   const revealObs = new IntersectionObserver(entries => {
     entries.forEach(en => { if(en.isIntersecting){ en.target.classList.add('in'); revealObs.unobserve(en.target); }});
@@ -171,7 +269,7 @@ function renderDesktop(projects, indexLabel) {
   document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
 }
 
-/* ── MOBILE ───────────────────────────────────────────────── */
+/* ── MOBILE render ────────────────────────────────────────── */
 function renderMobile(projects) {
   const wrap       = document.getElementById('mStory');
   const progressEl = document.getElementById('mProgress');
@@ -193,86 +291,69 @@ function renderMobile(projects) {
 
   loadAllThumbnails();
 
-  // ── helpers ────────────────────────────────────────────────
   function getActiveUnit(container) {
-    // find the unit whose top is closest to the container's scrollTop
-    const units = [...container.querySelectorAll('.m-video-unit')];
+    const units  = [...container.querySelectorAll('.m-video-unit')];
     const scroll = container.scrollTop;
     const height = container.clientHeight;
     return units.find(u => {
-      const top = u.offsetTop;
-      const bot = top + u.offsetHeight;
-      return top <= scroll + height * 0.6 && bot >= scroll + height * 0.4;
+      const top = u.offsetTop, bot = top + u.offsetHeight;
+      return top <= scroll + height*0.6 && bot >= scroll + height*0.4;
     }) || units[0];
   }
 
   function activateUnit(container, unit) {
     if (!unit) return;
-    // tear down all other shells in this container first
     container.querySelectorAll('.video-shell').forEach(s => {
       if (s !== unit.querySelector('.video-shell')) teardownShell(s);
     });
     const shell = unit.querySelector('.video-shell');
-    if (shell) injectIframe(shell, true); // autoplay muted
+    if (shell) injectIframe(shell, true);
   }
 
-  // ── per-slide vertical scroll handler ──────────────────────
   projects.forEach((_, pi) => {
     const container = document.getElementById(`vunits-${pi}`);
     if (!container) return;
     let vTimer = null;
     container.addEventListener('scroll', () => {
-      // tear down everything while scrolling
       container.querySelectorAll('.video-shell').forEach(teardownShell);
       clearTimeout(vTimer);
-      vTimer = setTimeout(() => {
-        activateUnit(container, getActiveUnit(container));
-      }, 120);
+      vTimer = setTimeout(() => activateUnit(container, getActiveUnit(container)), 120);
     }, { passive: true });
   });
 
-  // ── horizontal slide tracking ──────────────────────────────
   let activeIdx = 0;
   let hTimer = null;
 
   function updateProgress(idx) {
     document.querySelectorAll('.m-seg').forEach((s,i) => {
-      s.classList.toggle('done',   i < idx);
-      s.classList.toggle('active', i === idx);
+      s.classList.toggle('done', i<idx); s.classList.toggle('active', i===idx);
     });
     if (idx > 0) hint.classList.add('hidden');
   }
 
   function activateSlide(idx) {
-    // tear down every other slide
     wrap.querySelectorAll('.m-slide').forEach((slide, i) => {
       if (i !== idx) teardownAllInSlide(slide);
     });
-    // autoplay first video in the new active slide
     const container = document.getElementById(`vunits-${idx}`);
     if (!container) return;
-    const firstUnit = container.querySelector('.m-video-unit');
-    activateUnit(container, firstUnit);
+    activateUnit(container, container.querySelector('.m-video-unit'));
     updateProgress(idx);
   }
 
   wrap.addEventListener('scroll', () => {
     const newIdx = Math.round(wrap.scrollLeft / window.innerWidth);
-    // immediately kill audio on slides being swiped away
     wrap.querySelectorAll('.m-slide').forEach((slide, i) => {
       if (i !== newIdx) teardownAllInSlide(slide);
     });
     clearTimeout(hTimer);
     hTimer = setTimeout(() => {
       const settled = Math.round(wrap.scrollLeft / window.innerWidth);
-      if (settled !== activeIdx) {
-        activeIdx = settled;
-        activateSlide(activeIdx);
-      }
+      if (settled !== activeIdx) { activeIdx = settled; activateSlide(activeIdx); }
     }, 120);
   }, { passive: true });
 
-  // activate first slide on load
+  updateProgress(0);
   setTimeout(() => activateSlide(0), 300);
   setTimeout(() => hint.classList.add('hidden'), 4000);
 }
