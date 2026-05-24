@@ -10,10 +10,64 @@ const fsSVG     = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5
 const rw15SVG   = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6h-2c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/><text x="7.5" y="15.5" font-size="5.5" font-family="sans-serif" font-weight="700" fill="currentColor">15</text></svg>`;
 const ff15SVG   = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.01 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"/><text x="7.5" y="15.5" font-size="5.5" font-family="sans-serif" font-weight="700" fill="currentColor">15</text></svg>`;
 
+/* ── Thumbnail fetching ───────────────────────────────────── */
+async function fetchVimeoThumb(id) {
+  try {
+    const res = await fetch(`https://vimeo.com/api/v2/video/${id}.json`);
+    const data = await res.json();
+    return data[0].thumbnail_large || data[0].thumbnail_medium || '';
+  } catch { return ''; }
+}
+
+function youtubeThumb(id) {
+  return `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
+}
+
+async function loadAllThumbnails(projects) {
+  const shells = document.querySelectorAll('.video-shell');
+  const fetches = [];
+
+  shells.forEach(shell => {
+    const { provider, id } = shell.dataset;
+    if (!id || id === 'VIDEO_ID') return;
+    const poster = shell.querySelector('.poster, .poster.empty');
+
+    if (provider === 'youtube') {
+      const url = youtubeThumb(id);
+      if (poster) {
+        poster.style.backgroundImage = `url('${url}')`;
+        poster.style.backgroundSize = 'cover';
+        poster.style.backgroundPosition = 'center';
+        poster.classList.remove('empty');
+        poster.classList.add('poster');
+      }
+    } else if (provider === 'vimeo') {
+      fetches.push(
+        fetchVimeoThumb(id).then(url => {
+          if (!url) return;
+          // re-query in case DOM updated
+          const s = document.querySelector(`.video-shell[data-id="${id}"]`);
+          if (!s) return;
+          const p = s.querySelector('.poster, .poster.empty');
+          if (p) {
+            p.style.backgroundImage = `url('${url}')`;
+            p.style.backgroundSize = 'cover';
+            p.style.backgroundPosition = 'center';
+            p.classList.remove('empty');
+            p.classList.add('poster');
+          }
+        })
+      );
+    }
+  });
+
+  await Promise.allSettled(fetches);
+}
+
 /* ── Vimeo postMessage bridge ─────────────────────────────── */
 function vimeoPost(iframe, method, value) {
-  const msg = JSON.stringify({ method, value });
-  iframe.contentWindow.postMessage(msg, '*');
+  if (!iframe) return;
+  iframe.contentWindow.postMessage(JSON.stringify({ method, value }), '*');
 }
 
 /* ── Custom control bar ───────────────────────────────────── */
@@ -69,7 +123,7 @@ function buildControls(shell, startMuted) {
     try {
       const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
       if (data.method === 'getCurrentTime' && shell._pendingSeek !== undefined) {
-        vimeoPost(shell.querySelector('iframe'), 'setCurrentTime', Math.max(0, (data.value||0) + shell._pendingSeek));
+        vimeoPost(shell.querySelector('iframe'), 'setCurrentTime', Math.max(0,(data.value||0)+shell._pendingSeek));
         delete shell._pendingSeek;
       }
     } catch {}
@@ -92,9 +146,9 @@ function creditsHTML(rows) {
   ).join('') + '</div>';
 }
 
-/* ── Inject / teardown iframe ─────────────────────────────── */
+/* ── Inject / teardown ────────────────────────────────────── */
 function injectIframe(shell, autoplay, muted) {
-  if (shell.querySelector('iframe')) return; // already loaded
+  if (shell.querySelector('iframe')) return;
   const { provider, id } = shell.dataset;
   if (!id || id === 'VIDEO_ID') return;
   const src = provider === 'vimeo'
@@ -110,14 +164,12 @@ function injectIframe(shell, autoplay, muted) {
   buildControls(shell, muted);
 }
 
-function teardownShell(shell, film) {
-  // Completely destroy iframe so audio stops immediately
+function teardownShell(shell, posterUrl) {
   const iframe = shell.querySelector('iframe');
   if (!iframe) return;
-  // blank src first to kill audio instantly
-  iframe.src = '';
-  const ps = film && film.poster ? `style="background-image:url('${film.poster}');background-size:cover;background-position:center"` : '';
-  const pc = film && film.poster ? 'poster' : 'poster empty';
+  iframe.src = ''; // kill audio instantly
+  const ps = posterUrl ? `style="background-image:url('${posterUrl}');background-size:cover;background-position:center"` : '';
+  const pc = posterUrl ? 'poster' : 'poster empty';
   shell.innerHTML = `<div class="${pc}" ${ps}></div><div class="play-hint"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>`;
   shell.style.cursor = 'pointer';
 }
@@ -125,7 +177,7 @@ function teardownShell(shell, film) {
 function teardownAllInSlide(slideEl, project) {
   if (!project) return;
   const allFilms = [...(project.heroFilm ? [project.heroFilm] : []), ...project.films];
-  slideEl.querySelectorAll('.video-shell').forEach((s, i) => teardownShell(s, allFilms[i]));
+  slideEl.querySelectorAll('.video-shell').forEach((s, i) => teardownShell(s, allFilms[i]?.poster||''));
 }
 
 /* ── DESKTOP render ───────────────────────────────────────── */
@@ -151,24 +203,37 @@ function renderDesktop(projects, indexLabel) {
   ).join('');
   if (indexLabel) { const l = document.querySelector('.index .label'); if(l) l.textContent = indexLabel; }
 
-  // Desktop: click → load with sound
-  el.addEventListener('click', e => {
-    const shell = e.target.closest('.video-shell');
-    if (!shell || shell.querySelector('iframe')) return;
-    injectIframe(shell, true, false);
-  });
+  // Fetch thumbnails after DOM is ready
+  loadAllThumbnails(projects);
 
-  const io = new IntersectionObserver(entries => {
-    entries.forEach(en => { if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); }});
+  // Desktop: scroll into view → autoplay muted; scroll out → teardown
+  const desktopObs = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      const shell = entry.target;
+      if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+        injectIframe(shell, true, true); // autoplay muted
+      } else {
+        // get poster url from current background if set
+        const p = shell.querySelector('.poster');
+        const bg = p ? p.style.backgroundImage.replace(/url\(["']?|["']?\)/g,'') : '';
+        teardownShell(shell, bg);
+      }
+    });
+  }, { threshold: 0.5 });
+
+  el.querySelectorAll('.video-shell').forEach(s => desktopObs.observe(s));
+
+  const revealObs = new IntersectionObserver(entries => {
+    entries.forEach(en => { if(en.isIntersecting){ en.target.classList.add('in'); revealObs.unobserve(en.target); }});
   }, {threshold:0.08, rootMargin:'0px 0px -5% 0px'});
-  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
 }
 
 /* ── MOBILE render ────────────────────────────────────────── */
 function renderMobile(projects) {
-  const wrap      = document.getElementById('mStory');
-  const progressEl= document.getElementById('mProgress');
-  const hint      = document.getElementById('mNavHint');
+  const wrap       = document.getElementById('mStory');
+  const progressEl = document.getElementById('mProgress');
+  const hint       = document.getElementById('mNavHint');
 
   progressEl.innerHTML = projects.map((_,i) => `<div class="m-seg" id="seg-${i}"></div>`).join('');
 
@@ -189,7 +254,10 @@ function renderMobile(projects) {
     </div>`;
   }).join('');
 
-  // ── Vertical snap autoplay (muted) per slide ──────────────
+  // Fetch thumbnails for mobile too
+  loadAllThumbnails(projects);
+
+  // Vertical snap autoplay (muted) per slide
   projects.forEach((p, pi) => {
     const container = document.getElementById(`vunits-${pi}`);
     if (!container) return;
@@ -201,18 +269,22 @@ function renderMobile(projects) {
         const shell = entry.target.querySelector('.video-shell');
         if (!shell) return;
         if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
-          injectIframe(shell, true, true); // autoplay MUTED on mobile
+          injectIframe(shell, true, true); // autoplay muted
         } else {
-          teardownShell(shell, allFilms[fi]);
+          const p2 = shell.querySelector('.poster');
+          const bg = p2 ? p2.style.backgroundImage.replace(/url\(["']?|["']?\)/g,'') : '';
+          teardownShell(shell, bg);
         }
       });
-    }, {root: container, threshold: 0.5});
+    }, { root: container, threshold: 0.5 });
 
     container.querySelectorAll('.m-video-unit').forEach(u => vertObs.observe(u));
   });
 
-  // ── Horizontal progress bar ────────────────────────────────
+  // Horizontal scroll: tear down off-screen slides instantly
   let currentSlideIdx = 0;
+  let scrollTimer = null;
+  const slideWidth = window.innerWidth;
 
   function updateProgress(idx) {
     document.querySelectorAll('.m-seg').forEach((s,i) => {
@@ -223,29 +295,18 @@ function renderMobile(projects) {
   }
   updateProgress(0);
 
-  // ── Horizontal scroll: teardown on scroll, not IntersectionObserver ──
-  // This kills audio the instant the user starts swiping
-  let scrollTimer = null;
-  const slideWidth = window.innerWidth;
-
   wrap.addEventListener('scroll', () => {
-    // Tear down every slide that is not the current one immediately
     const scrollLeft = wrap.scrollLeft;
     const newIdx = Math.round(scrollLeft / slideWidth);
-
     wrap.querySelectorAll('.m-slide').forEach((slide, i) => {
-      if (i !== newIdx) {
-        teardownAllInSlide(slide, projects[i]);
-      }
+      if (i !== newIdx) teardownAllInSlide(slide, projects[i]);
     });
-
-    // Debounce progress update to when scroll settles
     clearTimeout(scrollTimer);
     scrollTimer = setTimeout(() => {
       currentSlideIdx = Math.round(wrap.scrollLeft / slideWidth);
       updateProgress(currentSlideIdx);
     }, 80);
-  }, {passive: true});
+  }, { passive: true });
 
   setTimeout(() => hint.classList.add('hidden'), 4000);
 }
