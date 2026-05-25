@@ -340,6 +340,7 @@ function cardHTML(p,pi){
       <div class="project-actions">
         <button class="btn secondary small" onclick="moveUp(${pi})" ${pi===0?'disabled':''}>Up</button>
         <button class="btn secondary small" onclick="moveDown(${pi})" ${pi===projects.length-1?'disabled':''}>Down</button>
+        <button class="btn secondary small" onclick="dupProject(${pi})">Duplicate</button>
         <button class="btn danger small" onclick="rmProject(${pi})">Remove</button>
       </div>
     </div>
@@ -358,6 +359,15 @@ function rmHero(pi){delete projects[pi].heroFilm;refreshCard(pi);openCard(pi);}
 function moveUp(pi){if(pi===0)return;[projects[pi-1],projects[pi]]=[projects[pi],projects[pi-1]];renderProjects();openCard(pi-1);}
 function moveDown(pi){if(pi>=projects.length-1)return;[projects[pi],projects[pi+1]]=[projects[pi+1],projects[pi]];renderProjects();openCard(pi+1);}
 function rmProject(pi){if(!confirm(`Remove "${projects[pi].title}"?`))return;projects.splice(pi,1);renderProjects();}
+function dupProject(pi){
+  const src=projects[pi];
+  const copy=JSON.parse(JSON.stringify(src));
+  copy.id=src.id+'-copy-'+Date.now();
+  copy.title=src.title+' (Copy)';
+  projects.splice(pi+1,0,copy);
+  renderProjects();openCard(pi+1);
+  document.getElementById(`pc${pi+1}`).scrollIntoView({behavior:'smooth'});
+}
 function addProject(){
   const title=prompt('Project title:');if(!title)return;
   const id=title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
