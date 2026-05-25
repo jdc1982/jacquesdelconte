@@ -201,16 +201,31 @@ function doLogout() {
   document.getElementById('app').style.display = 'none';
 }
 async function verifyToken() {
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
   try {
-    const r = await ghGet('');
-    if (r.full_name) {
+    // Test token against the specific repo
+    const r = await fetch(`${BASE}`, {
+      headers: {
+        'Authorization': `token ${TOKEN}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+    const data = await r.json();
+    if (r.ok && data.full_name) {
       document.getElementById('login').style.display = 'none';
       document.getElementById('app').style.display = 'block';
       showPages();
+    } else if (r.status === 401) {
+      showLoginError('Invalid token — check and try again');
+    } else if (r.status === 404) {
+      showLoginError('Repo not found — check token permissions');
     } else {
-      showLoginError('Invalid token or repo not found');
+      showLoginError(data.message || 'Login failed (status ' + r.status + ')');
     }
-  } catch { showLoginError('Could not connect — check token'); }
+  } catch(e) {
+    showLoginError('Network error: ' + e.message);
+  }
 }
 function showLoginError(msg) {
   const el = document.getElementById('loginError');
