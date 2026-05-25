@@ -220,30 +220,35 @@ function renderDesktop(projects, indexLabel) {
   const el = document.getElementById('projects');
 
   el.innerHTML = projects.map(p => {
-    const allFilms = [...(p.heroFilm ? [p.heroFilm] : []), ...p.films];
-    const isMulti  = allFilms.length > 1;
+    const arrowSVGL = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`;
+    const arrowSVGR = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
+
+    function hscrollerHTML(films, id) {
+      const slots = films.map(f => `<div class="hslot">${filmShell(f)}</div>`).join('');
+      const dots  = films.map((_,i) => `<button class="hscroll-dot${i===0?' active':''}" aria-label="Film ${i+1}"></button>`).join('');
+      return `<div class="hscroll-wrap">
+        <div class="hscroll-arrow left hidden">${arrowSVGL}</div>
+        <div class="films-hscroll" id="hscroll-${id}">${slots}</div>
+        <div class="hscroll-arrow right">${arrowSVGR}</div>
+        <div class="hscroll-dots">${dots}</div>
+      </div>`;
+    }
 
     let filmsHTML = '';
-    if (isMulti) {
-      // horizontal scroller — one slot per film
-      const slots = allFilms.map(f =>
-        `<div class="hslot">${filmShell(f)}</div>`
-      ).join('');
-      const dotBtns = allFilms.map((_,i) =>
-        `<button class="hscroll-dot${i===0?' active':''}" aria-label="Film ${i+1}"></button>`
-      ).join('');
-      const arrowSVGL = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`;
-      const arrowSVGR = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
-      filmsHTML = `
-        <div class="hscroll-wrap">
-          <div class="hscroll-arrow left hidden">${arrowSVGL}</div>
-          <div class="films-hscroll" id="hscroll-${p.id}">${slots}</div>
-          <div class="hscroll-arrow right">${arrowSVGR}</div>
-          <div class="hscroll-dots">${dotBtns}</div>
-        </div>`;
+
+    if (p.heroFilm && p.films.length > 0) {
+      // Hero film standalone full-width, sub-films in scroller below
+      filmsHTML  = `<div class="films single">${filmShell(p.heroFilm)}</div>`;
+      filmsHTML += `<div style="margin-top:clamp(12px,1.6vw,20px)">` + hscrollerHTML(p.films, p.id) + `</div>`;
+    } else if (p.heroFilm) {
+      // Hero only, no sub-films
+      filmsHTML = `<div class="films single">${filmShell(p.heroFilm)}</div>`;
+    } else if (p.films.length > 1) {
+      // Multiple films, no hero — horizontal scroller
+      filmsHTML = hscrollerHTML(p.films, p.id);
     } else {
-      // single film — plain shell, full width
-      filmsHTML = `<div class="films single">${filmShell(allFilms[0])}</div>`;
+      // Single film
+      filmsHTML = `<div class="films single">${filmShell(p.films[0])}</div>`;
     }
 
     return `<section class="project" id="${p.id}">
@@ -262,17 +267,16 @@ function renderDesktop(projects, indexLabel) {
   ).join('');
   if (indexLabel) { const l=document.querySelector('.index .label'); if(l) l.textContent=indexLabel; }
 
-  // Init horizontal scrollers
+  // Init horizontal scrollers (sub-films only, not heroFilm)
   projects.forEach(p => {
-    const allFilms = [...(p.heroFilm ? [p.heroFilm] : []), ...p.films];
-    if (allFilms.length <= 1) return;
     const scroller = document.getElementById(`hscroll-${p.id}`);
     if (!scroller) return;
     const shells = [...scroller.querySelectorAll('.video-shell')];
+    if (shells.length < 1) return;
     initHScroller(scroller, shells);
   });
 
-  // Single-film desktop autoplay via IntersectionObserver
+  // Single-film + heroFilm desktop autoplay via IntersectionObserver
   el.querySelectorAll('.films.single .video-shell').forEach(shell => {
     const obs = new IntersectionObserver(entries => {
       entries.forEach(e => {
