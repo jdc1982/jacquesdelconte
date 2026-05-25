@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Jacques del Conte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f0f0ee;--ink:#1a1a18;--soft:#6f6c66;--line:rgba(26,26,24,0.12);--accent:#1a1a18;--red:#c0392b;--green:#27ae60;--serif:'Cormorant Garamond',Georgia,serif;--sans:'Jost',sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-weight:300;-webkit-font-smoothing:antialiased;min-height:100vh}
+a{color:inherit;text-decoration:none}
+input,select,textarea{font-family:var(--sans);font-size:13px;font-weight:300}
+
+/* ── Login ── */
+#login{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.login-box{background:#fff;border:1px solid var(--line);padding:48px;max-width:400px;width:100%;text-align:center}
+.login-box h1{font-family:var(--serif);font-weight:300;font-size:2rem;margin-bottom:8px}
+.login-box p{color:var(--soft);font-size:13px;margin-bottom:32px}
+.login-box input{width:100%;border:1px solid var(--line);padding:12px 14px;font-size:14px;margin-bottom:14px;background:var(--bg);outline:none}
+.login-box input:focus{border-color:var(--ink)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 24px;background:var(--ink);color:#fff;font-size:11px;letter-spacing:.18em;text-transform:uppercase;border:none;cursor:pointer;font-family:var(--sans);font-weight:400;transition:opacity .2s}
+.btn:hover{opacity:.8}
+.btn.secondary{background:none;color:var(--ink);border:1px solid var(--line)}
+.btn.secondary:hover{background:var(--ink);color:#fff}
+.btn.danger{background:var(--red)}
+.btn.small{padding:7px 14px;font-size:10px}
+.btn.green{background:var(--green)}
+
+/* ── App shell ── */
+#app{display:none;min-height:100vh}
+.topbar{position:sticky;top:0;z-index:100;background:rgba(240,240,238,0.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:60px}
+.topbar .brand{font-family:var(--serif);font-size:18px}
+.topbar .actions{display:flex;align-items:center;gap:12px}
+.topbar .status{font-size:11px;letter-spacing:.12em;color:var(--soft)}
+.topbar .status.saving{color:orange}
+.topbar .status.saved{color:var(--green)}
+.topbar .status.error{color:var(--red)}
+
+/* ── Pages list ── */
+#pages-view{padding:40px 32px}
+#pages-view h2{font-family:var(--serif);font-weight:300;font-size:1.8rem;margin-bottom:28px}
+.pages-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.page-card{background:#fff;border:1px solid var(--line);padding:20px 22px;cursor:pointer;transition:border-color .2s,box-shadow .2s}
+.page-card:hover{border-color:var(--ink);box-shadow:0 2px 12px rgba(0,0,0,0.06)}
+.page-card h3{font-family:var(--serif);font-weight:400;font-size:1.2rem;margin-bottom:6px}
+.page-card p{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft)}
+
+/* ── Editor ── */
+#editor-view{display:none;padding:32px}
+.editor-header{display:flex;align-items:center;gap:16px;margin-bottom:32px;flex-wrap:wrap}
+.editor-header h2{font-family:var(--serif);font-weight:300;font-size:1.8rem}
+.editor-header .spacer{flex:1}
+
+.project-list{display:flex;flex-direction:column;gap:16px}
+
+.project-card{background:#fff;border:1px solid var(--line);border-radius:2px;overflow:hidden}
+.project-head{display:flex;align-items:center;gap:12px;padding:16px 20px;cursor:pointer;user-select:none;border-bottom:1px solid transparent;transition:background .2s}
+.project-head:hover{background:rgba(26,26,24,0.03)}
+.project-head.open{border-bottom:1px solid var(--line)}
+.project-head .drag-handle{color:var(--soft);cursor:grab;font-size:16px;opacity:.5}
+.project-head .project-num{font-size:11px;letter-spacing:.12em;color:var(--soft);min-width:28px}
+.project-head .project-title{font-family:var(--serif);font-size:1.15rem;font-weight:400;flex:1}
+.project-head .chevron{color:var(--soft);transition:transform .3s;font-size:14px}
+.project-head.open .chevron{transform:rotate(180deg)}
+
+.project-body{display:none;padding:22px 22px 28px}
+.project-body.open{display:block}
+
+/* fields */
+.field{margin-bottom:18px}
+.field label{display:block;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--soft);margin-bottom:7px}
+.field input,.field select{width:100%;border:1px solid var(--line);padding:10px 12px;background:var(--bg);outline:none;font-size:14px;color:var(--ink)}
+.field input:focus,.field select:focus{border-color:var(--ink)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* credits */
+.section-label{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--soft);margin-bottom:10px;margin-top:24px;display:flex;align-items:center;justify-content:space-between}
+.credit-row{display:grid;grid-template-columns:1fr 1fr 32px;gap:8px;margin-bottom:8px;align-items:center}
+.credit-row input{border:1px solid var(--line);padding:8px 10px;background:var(--bg);outline:none;font-size:13px}
+.credit-row input:focus{border-color:var(--ink)}
+.remove-btn{background:none;border:none;color:var(--soft);cursor:pointer;font-size:18px;line-height:1;padding:4px;transition:color .2s;display:flex;align-items:center;justify-content:center}
+.remove-btn:hover{color:var(--red)}
+
+/* films */
+.film-row{display:grid;grid-template-columns:90px 1fr 1fr 32px;gap:8px;margin-bottom:8px;align-items:center}
+.film-row select,.film-row input{border:1px solid var(--line);padding:8px 10px;background:var(--bg);outline:none;font-size:13px;width:100%}
+.film-row select:focus,.film-row input:focus{border-color:var(--ink)}
+
+.project-actions{display:flex;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+
+/* toast */
+.toast{position:fixed;bottom:28px;right:28px;background:var(--ink);color:#fff;padding:14px 20px;font-size:12px;letter-spacing:.1em;opacity:0;transition:opacity .4s;pointer-events:none;z-index:9999}
+.toast.show{opacity:1}
+.toast.error{background:var(--red)}
+
+/* loading */
+.loading{text-align:center;padding:60px;color:var(--soft);font-size:13px;letter-spacing:.14em;text-transform:uppercase}
+
+/* new project form */
+.add-project-bar{background:#fff;border:1px solid var(--line);padding:20px 22px;margin-top:16px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+.add-project-bar .field{margin:0;flex:1;min-width:180px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-box">
+    <h1>Jacques del Conte</h1>
+    <p>Admin Panel — enter your GitHub token to continue</p>
+    <input type="password" id="tokenInput" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
+    <br>
+    <button class="btn" onclick="doLogin()">Sign In</button>
+    <p id="loginError" style="color:var(--red);font-size:12px;margin-top:14px;display:none"></p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="brand">Admin</div>
+    <div class="actions">
+      <span class="status" id="statusMsg"></span>
+      <button class="btn secondary small" onclick="showPages()">← All Pages</button>
+      <button class="btn small" id="saveBtn" onclick="saveCurrentPage()" style="display:none">Save & Deploy</button>
+      <button class="btn secondary small" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- PAGES LIST -->
+  <div id="pages-view">
+    <h2>Client Pages</h2>
+    <div class="pages-grid" id="pagesGrid"></div>
+  </div>
+
+  <!-- EDITOR -->
+  <div id="editor-view">
+    <div class="editor-header">
+      <h2 id="editorTitle"></h2>
+      <div class="spacer"></div>
+      <button class="btn small green" onclick="addProject()">+ Add Project</button>
+    </div>
+    <div class="project-list" id="projectList"></div>
+    <div class="add-project-bar" id="addProjectBar" style="display:none">
+      <div class="field">
+        <label>Project Title</label>
+        <input type="text" id="newProjectTitle" placeholder="e.g. Louis Vuitton SS26">
+      </div>
+      <button class="btn small" onclick="confirmAddProject()">Add</button>
+      <button class="btn secondary small" onclick="cancelAddProject()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const OWNER = 'jdc1982';
+const REPO  = 'jacquesdelconte';
+const BASE  = `https://api.github.com/repos/${OWNER}/${REPO}`;
+
+const PAGES = [
+  {file:'lv.html',       label:'Louis Vuitton'},
+  {file:'dior.html',     label:'Dior'},
+  {file:'cartier.html',  label:'Cartier'},
+  {file:'gucci.html',    label:'Gucci'},
+  {file:'mugler.html',   label:'Mugler'},
+  {file:'armani.html',   label:'Armani Beauty'},
+  {file:'zegna.html',    label:'Zegna'},
+  {file:'pandora.html',  label:'Pandora'},
+  {file:'lancome.html',  label:'Lancôme'},
+  {file:'dolce.html',    label:'Dolce & Gabbana'},
+  {file:'nars.html',     label:'Nars'},
+  {file:'boss.html',     label:'Hugo Boss'},
+  {file:'zara.html',     label:'Zara'},
+  {file:'zarahome.html', label:'Zara Home'},
+  {file:'zarabeauty.html',label:'Zara Beauty'},
+  {file:'crownroyal.html',label:'Crown Royal'},
+];
+
+let TOKEN = '';
+let currentFile = '';
+let currentHTML = '';
+let currentSHA  = '';
+let projects    = [];
+
+/* ── Auth ── */
+function doLogin() {
+  const t = document.getElementById('tokenInput').value.trim();
+  if (!t) return;
+  TOKEN = t;
+  localStorage.setItem('jdc_admin_token', t);
+  verifyToken();
+}
+function doLogout() {
+  TOKEN = ''; localStorage.removeItem('jdc_admin_token');
+  document.getElementById('login').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+async function verifyToken() {
+  try {
+    const r = await ghGet('');
+    if (r.full_name) {
+      document.getElementById('login').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      showPages();
+    } else {
+      showLoginError('Invalid token or repo not found');
+    }
+  } catch { showLoginError('Could not connect — check token'); }
+}
+function showLoginError(msg) {
+  const el = document.getElementById('loginError');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+/* ── GitHub API ── */
+async function ghGet(path) {
+  const r = await fetch(`${BASE}${path}`, {headers:{'Authorization':`token ${TOKEN}`,'Accept':'application/vnd.github.v3+json'}});
+  return r.json();
+}
+async function ghPut(path, body) {
+  const r = await fetch(`${BASE}${path}`, {method:'PUT',headers:{'Authorization':`token ${TOKEN}`,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify(body)});
+  return r.json();
+}
+
+/* ── Pages view ── */
+function showPages() {
+  document.getElementById('pages-view').style.display = 'block';
+  document.getElementById('editor-view').style.display = 'none';
+  document.getElementById('saveBtn').style.display = 'none';
+  setStatus('');
+  const grid = document.getElementById('pagesGrid');
+  grid.innerHTML = PAGES.map(p => `
+    <div class="page-card" onclick="openPage('${p.file}','${p.label}')">
+      <h3>${p.label}</h3>
+      <p>${p.file}</p>
+    </div>`).join('');
+}
+
+/* ── Editor ── */
+async function openPage(file, label) {
+  document.getElementById('pages-view').style.display = 'none';
+  document.getElementById('editor-view').style.display = 'block';
+  document.getElementById('saveBtn').style.display = 'inline-flex';
+  document.getElementById('editorTitle').textContent = label;
+  document.getElementById('projectList').innerHTML = '<div class="loading">Loading...</div>';
+  setStatus('');
+  currentFile = file;
+
+  try {
+    const res = await ghGet(`/contents/${file}`);
+    currentSHA  = res.sha;
+    currentHTML = atob(res.content.replace(/\n/g,''));
+    projects = parseProjects(currentHTML);
+    renderProjects();
+  } catch(e) {
+    document.getElementById('projectList').innerHTML = `<div class="loading" style="color:var(--red)">Error loading file: ${e.message}</div>`;
+  }
+}
+
+/* ── Parse PROJECTS from HTML ── */
+function parseProjects(html) {
+  const m = html.match(/const PROJECTS=(\[[\s\S]*?\]);\s*\ninitClientPage/);
+  if (!m) throw new Error('Could not find PROJECTS array');
+  try {
+    return (new Function('return ' + m[1]))();
+  } catch(e) {
+    throw new Error('Could not parse PROJECTS: ' + e.message);
+  }
+}
+
+/* ── Serialize PROJECTS back to JS string ── */
+function serializeProjects(projs) {
+  function serializeFilm(f) {
+    return `{provider:'${esc(f.provider)}',id:'${esc(f.id)}',label:'${esc(f.label||'')}',poster:'${esc(f.poster||'')}'}`;
+  }
+  function serializeCredit(c) {
+    return `['${esc(c[0])}','${esc(c[1])}']`;
+  }
+  function serializeProject(p) {
+    const id    = `id:'${esc(p.id)}'`;
+    const title = `title:'${esc(p.title)}'`;
+    const creds = `credits:[${p.credits.map(serializeCredit).join(',')}]`;
+    const hero  = p.heroFilm ? `,heroFilm:${serializeFilm(p.heroFilm)}` : '';
+    const films = `films:[${p.films.map(serializeFilm).join(',')}]`;
+    const layout= `layout:'${esc(p.layout||'single')}'`;
+    return `{${id},${title},${creds}${hero},${films},${layout}}`;
+  }
+  return '[\n  ' + projs.map(serializeProject).join(',\n  ') + '\n]';
+}
+
+function esc(s) {
+  return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+
+/* ── Render project list ── */
+function renderProjects() {
+  const list = document.getElementById('projectList');
+  if (!projects.length) {
+    list.innerHTML = '<div class="loading">No projects found</div>';
+    return;
+  }
+  list.innerHTML = projects.map((p, pi) => renderProjectCard(p, pi)).join('');
+}
+
+function renderProjectCard(p, pi) {
+  const credits = (p.credits||[]).map((c, ci) => `
+    <div class="credit-row" id="cr-${pi}-${ci}">
+      <input type="text" value="${htmlEsc(c[0])}" placeholder="Role" onchange="updateCredit(${pi},${ci},0,this.value)">
+      <input type="text" value="${htmlEsc(c[1])}" placeholder="Name" onchange="updateCredit(${pi},${ci},1,this.value)">
+      <button class="remove-btn" onclick="removeCredit(${pi},${ci})">×</button>
+    </div>`).join('');
+
+  const heroFilmHTML = p.heroFilm ? `
+    <div class="section-label">Hero Film</div>
+    <div class="film-row">
+      <select onchange="updateHeroFilm(${pi},'provider',this.value)">
+        <option value="vimeo" ${p.heroFilm.provider==='vimeo'?'selected':''}>Vimeo</option>
+        <option value="youtube" ${p.heroFilm.provider==='youtube'?'selected':''}>YouTube</option>
+      </select>
+      <input type="text" value="${htmlEsc(p.heroFilm.id)}" placeholder="Video ID" onchange="updateHeroFilm(${pi},'id',this.value)">
+      <input type="text" value="${htmlEsc(p.heroFilm.label||'')}" placeholder="Label" onchange="updateHeroFilm(${pi},'label',this.value)">
+      <button class="remove-btn" onclick="removeHeroFilm(${pi})">×</button>
+    </div>` : `
+    <div class="section-label">Hero Film <button class="btn secondary small" style="text-transform:none;letter-spacing:0;font-size:11px;padding:3px 10px" onclick="addHeroFilm(${pi})">+ Add Hero</button></div>`;
+
+  const films = (p.films||[]).map((f, fi) => `
+    <div class="film-row" id="fr-${pi}-${fi}">
+      <select onchange="updateFilm(${pi},${fi},'provider',this.value)">
+        <option value="vimeo" ${f.provider==='vimeo'?'selected':''}>Vimeo</option>
+        <option value="youtube" ${f.provider==='youtube'?'selected':''}>YouTube</option>
+      </select>
+      <input type="text" value="${htmlEsc(f.id)}" placeholder="Video ID" onchange="updateFilm(${pi},${fi},'id',this.value)">
+      <input type="text" value="${htmlEsc(f.label||'')}" placeholder="Label" onchange="updateFilm(${pi},${fi},'label',this.value)">
+      <button class="remove-btn" onclick="removeFilm(${pi},${fi})">×</button>
+    </div>`).join('');
+
+  return `
+  <div class="project-card" id="pc-${pi}">
+    <div class="project-head" onclick="toggleProject(${pi})">
+      <span class="project-num">${String(pi+1).padStart(2,'0')}</span>
+      <span class="project-title">${htmlEsc(p.title)}</span>
+      <span class="chevron">▾</span>
+    </div>
+    <div class="project-body" id="pb-${pi}">
+      <div class="field">
+        <label>Project Title</label>
+        <input type="text" value="${htmlEsc(p.title)}" onchange="updateProjectTitle(${pi},this.value)">
+      </div>
+
+      <div class="section-label">
+        Credits
+        <button class="btn secondary small" style="text-transform:none;letter-spacing:0;font-size:11px;padding:3px 10px" onclick="addCredit(${pi})">+ Add Credit</button>
+      </div>
+      <div id="credits-${pi}">${credits}</div>
+
+      ${heroFilmHTML}
+
+      <div class="section-label">
+        Films
+        <button class="btn secondary small" style="text-transform:none;letter-spacing:0;font-size:11px;padding:3px 10px" onclick="addFilm(${pi})">+ Add Film</button>
+      </div>
+      <div id="films-${pi}">${films}</div>
+
+      <div class="project-actions">
+        <button class="btn secondary small" onclick="moveProject(${pi},-1)" ${pi===0?'disabled':''}>↑ Move Up</button>
+        <button class="btn secondary small" onclick="moveProject(${pi},1)" ${pi===projects.length-1?'disabled':''}>↓ Move Down</button>
+        <button class="btn danger small" onclick="removeProject(${pi})">Remove Project</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function htmlEsc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function toggleProject(pi) {
+  const head = document.querySelector(`#pc-${pi} .project-head`);
+  const body = document.getElementById(`pb-${pi}`);
+  head.classList.toggle('open');
+  body.classList.toggle('open');
+}
+
+/* ── CRUD operations ── */
+function updateProjectTitle(pi, val) { projects[pi].title = val; refreshCard(pi); }
+function updateCredit(pi, ci, idx, val) { projects[pi].credits[ci][idx] = val; }
+function updateFilm(pi, fi, key, val) { projects[pi].films[fi][key] = val; }
+function updateHeroFilm(pi, key, val) { projects[pi].heroFilm[key] = val; }
+
+function addCredit(pi) {
+  projects[pi].credits.push(['','']);
+  refreshCard(pi); openCard(pi);
+}
+function removeCredit(pi, ci) {
+  projects[pi].credits.splice(ci, 1);
+  refreshCard(pi); openCard(pi);
+}
+function addFilm(pi) {
+  projects[pi].films.push({provider:'vimeo',id:'',label:'',poster:''});
+  refreshCard(pi); openCard(pi);
+}
+function removeFilm(pi, fi) {
+  projects[pi].films.splice(fi, 1);
+  refreshCard(pi); openCard(pi);
+}
+function addHeroFilm(pi) {
+  projects[pi].heroFilm = {provider:'vimeo',id:'',label:'',poster:''};
+  refreshCard(pi); openCard(pi);
+}
+function removeHeroFilm(pi) {
+  delete projects[pi].heroFilm;
+  refreshCard(pi); openCard(pi);
+}
+function moveProject(pi, dir) {
+  const newIdx = pi + dir;
+  if (newIdx < 0 || newIdx >= projects.length) return;
+  [projects[pi], projects[newIdx]] = [projects[newIdx], projects[pi]];
+  renderProjects();
+  openCard(newIdx);
+}
+function removeProject(pi) {
+  if (!confirm(`Remove "${projects[pi].title}"? This cannot be undone until you save.`)) return;
+  projects.splice(pi, 1);
+  renderProjects();
+}
+function refreshCard(pi) {
+  const card = document.getElementById(`pc-${pi}`);
+  const wasOpen = document.getElementById(`pb-${pi}`).classList.contains('open');
+  card.outerHTML = renderProjectCard(projects[pi], pi);
+  if (wasOpen) openCard(pi);
+}
+function openCard(pi) {
+  const head = document.querySelector(`#pc-${pi} .project-head`);
+  const body = document.getElementById(`pb-${pi}`);
+  if (head) head.classList.add('open');
+  if (body) body.classList.add('open');
+}
+
+/* ── Add new project ── */
+function addProject() {
+  document.getElementById('addProjectBar').style.display = 'flex';
+  document.getElementById('newProjectTitle').focus();
+}
+function cancelAddProject() {
+  document.getElementById('addProjectBar').style.display = 'none';
+  document.getElementById('newProjectTitle').value = '';
+}
+function confirmAddProject() {
+  const title = document.getElementById('newProjectTitle').value.trim();
+  if (!title) return;
+  const id = title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  projects.push({
+    id, title,
+    credits:[['EP of Post','Jacques del Conte']],
+    films:[{provider:'vimeo',id:'',label:'',poster:''}],
+    layout:'single'
+  });
+  cancelAddProject();
+  renderProjects();
+  openCard(projects.length - 1);
+  document.getElementById(`pc-${projects.length-1}`).scrollIntoView({behavior:'smooth'});
+}
+
+/* ── Save ── */
+async function saveCurrentPage() {
+  setStatus('Saving...', 'saving');
+  document.getElementById('saveBtn').disabled = true;
+  try {
+    const newProjectsJS = serializeProjects(projects);
+    const newHTML = currentHTML.replace(
+      /const PROJECTS=\[[\s\S]*?\];\s*\ninitClientPage/,
+      `const PROJECTS=${newProjectsJS};\ninitClientPage`
+    );
+    const res = await ghPut(`/contents/${currentFile}`, {
+      message: `Admin: update ${currentFile}`,
+      content: btoa(unescape(encodeURIComponent(newHTML))),
+      sha: currentSHA
+    });
+    if (res.content && res.content.sha) {
+      currentSHA = res.content.sha;
+      currentHTML = newHTML;
+      setStatus('Saved — deploying...', 'saved');
+      toast('Saved! Netlify will deploy in ~30 seconds.');
+    } else {
+      throw new Error(res.message || 'Unknown error');
+    }
+  } catch(e) {
+    setStatus('Error: ' + e.message, 'error');
+    toast('Save failed: ' + e.message, true);
+  }
+  document.getElementById('saveBtn').disabled = false;
+}
+
+function setStatus(msg, type) {
+  const el = document.getElementById('statusMsg');
+  el.textContent = msg;
+  el.className = 'status' + (type ? ' ' + type : '');
+}
+
+function toast(msg, isError) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => el.className = 'toast', 3500);
+}
+
+/* ── Init ── */
+window.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+    e.preventDefault();
+    if (currentFile) saveCurrentPage();
+  }
+});
+
+const saved = localStorage.getItem('jdc_admin_token');
+if (saved) { TOKEN = saved; verifyToken(); }
+</script>
+</body>
+</html>
