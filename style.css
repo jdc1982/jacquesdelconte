@@ -138,3 +138,44 @@ header{position:sticky;top:0;z-index:200;background:rgba(251,250,248,0.88);backd
     transform:scale(1.4);
   }
 }
+
+/* ── Horizontal scroller nav arrows ───────────────────────── */
+@media(min-width:769px){
+  .hscroll-wrap{
+    position:relative;
+  }
+
+  /* arrow buttons — sit over left/right edges of the scroller */
+  .hscroll-arrow{
+    position:absolute;
+    top:0;bottom:0;
+    width:80px;
+    z-index:20;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    opacity:0;
+    transition:opacity .35s;
+    pointer-events:none;
+    cursor:pointer;
+  }
+  .hscroll-arrow.left { left:0;  background:linear-gradient(to right, rgba(10,10,11,0.45), transparent); }
+  .hscroll-arrow.right{ right:0; background:linear-gradient(to left,  rgba(10,10,11,0.45), transparent); }
+
+  /* show on scroller hover */
+  .hscroll-wrap:hover .hscroll-arrow.right:not(.hidden){ opacity:1; pointer-events:all; }
+  .hscroll-wrap:hover .hscroll-arrow.left:not(.hidden) { opacity:1; pointer-events:all; }
+
+  /* also show when mouse is specifically over that half */
+  .hscroll-arrow svg{
+    width:28px;height:28px;
+    color:#fff;
+    filter:drop-shadow(0 1px 4px rgba(0,0,0,0.5));
+    transform:scale(0.85);
+    transition:transform .3s;
+  }
+  .hscroll-arrow:hover svg{ transform:scale(1); }
+
+  /* hide left on first, right on last */
+  .hscroll-arrow.hidden{ opacity:0 !important; pointer-events:none !important; }
+}
