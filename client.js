@@ -44,7 +44,10 @@ function vimeoPost(iframe, method, value) {
 
 /* ── Controls ─────────────────────────────────────────────── */
 function buildControls(shell, startMuted) {
-  shell.querySelectorAll('.jdc-ctrl').forEach(el => el.remove());
+  const isMobile = window.innerWidth <= 768;
+  // On mobile attach controls to the unit (parent of shell) so they sit below the video
+  const ctrlTarget = isMobile && shell.closest('.m-video-unit') ? shell.closest('.m-video-unit') : shell;
+  ctrlTarget.querySelectorAll('.jdc-ctrl').forEach(el => el.remove());
   const ctrl = document.createElement('div');
   ctrl.className = 'jdc-ctrl';
   ctrl.innerHTML = `
@@ -53,7 +56,7 @@ function buildControls(shell, startMuted) {
     <button class="jdc-btn" data-action="ff">${ff15SVG}</button>
     <button class="jdc-btn" data-action="fs">${fsSVG}</button>
     <button class="jdc-btn jdc-mute" data-action="mute">${startMuted ? muteSVG : unmuteSVG}</button>`;
-  shell.appendChild(ctrl);
+  ctrlTarget.appendChild(ctrl);
   let playing = true, muted = !!startMuted;
   ctrl.addEventListener('click', e => {
     e.stopPropagation();
