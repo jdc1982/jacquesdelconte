@@ -132,10 +132,35 @@ function teardownAllInSlide(slideEl) {
 
 /* ── Desktop horizontal scroller for multi-film projects ─── */
 function initHScroller(scroller, shells) {
-  const dots = scroller.parentElement.querySelector('.hscroll-dots');
+  const wrap     = scroller.closest('.hscroll-wrap');
+  const dots     = wrap ? wrap.querySelector('.hscroll-dots') : null;
+  const arrowL   = wrap ? wrap.querySelector('.hscroll-arrow.left')  : null;
+  const arrowR   = wrap ? wrap.querySelector('.hscroll-arrow.right') : null;
   const slotWidth = () => scroller.clientWidth;
-  let activeIdx = 0;
+  let activeIdx  = 0;
   let scrollTimer = null;
+  const total    = shells.length;
+
+  function updateArrows(idx) {
+    if (arrowL) arrowL.classList.toggle('hidden', idx === 0);
+    if (arrowR) arrowR.classList.toggle('hidden', idx >= total - 1);
+  }
+
+  function updateDots(idx) {
+    if (!dots) return;
+    dots.querySelectorAll('.hscroll-dot').forEach((d,i) => d.classList.toggle('active', i===idx));
+  }
+
+  function goTo(idx) {
+    scroller.scrollTo({ left: idx * slotWidth(), behavior: 'smooth' });
+  }
+
+  function activateSlot(idx) {
+    shells.forEach((s, i) => { if (i !== idx) teardownShell(s); });
+    injectIframe(shells[idx], true);
+    updateDots(idx);
+    updateArrows(idx);
+  }
 
   // drag-to-scroll
   let isDragging = false, startX = 0, startScroll = 0;
@@ -149,19 +174,7 @@ function initHScroller(scroller, shells) {
   });
   window.addEventListener('mouseup', () => { isDragging = false; scroller.style.userSelect = ''; });
 
-  function updateDots(idx) {
-    if (!dots) return;
-    dots.querySelectorAll('.hscroll-dot').forEach((d,i) => d.classList.toggle('active', i===idx));
-  }
-
-  function activateSlot(idx) {
-    shells.forEach((s, i) => { if (i !== idx) teardownShell(s); });
-    injectIframe(shells[idx], true); // autoplay muted on desktop
-    updateDots(idx);
-  }
-
   scroller.addEventListener('scroll', () => {
-    // tear down all while scrolling
     shells.forEach(teardownShell);
     clearTimeout(scrollTimer);
     scrollTimer = setTimeout(() => {
@@ -170,33 +183,33 @@ function initHScroller(scroller, shells) {
     }, 150);
   }, { passive: true });
 
+  // arrow clicks
+  if (arrowL) arrowL.addEventListener('click', () => goTo(Math.max(0, activeIdx - 1)));
+  if (arrowR) arrowR.addEventListener('click', () => goTo(Math.min(total - 1, activeIdx + 1)));
+
   // dot clicks
   if (dots) {
     dots.querySelectorAll('.hscroll-dot').forEach((dot, i) => {
-      dot.addEventListener('click', () => {
-        scroller.scrollTo({ left: i * slotWidth(), behavior: 'smooth' });
-      });
+      dot.addEventListener('click', () => goTo(i));
     });
   }
 
-  // IntersectionObserver: autoplay first slot when scroller enters viewport
+  // autoplay when entering viewport
   const viewObs = new IntersectionObserver(entries => {
     entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        activateSlot(activeIdx);
-        viewObs.unobserve(entry.target);
-      }
+      if (entry.isIntersecting) { activateSlot(activeIdx); viewObs.unobserve(entry.target); }
     });
   }, { threshold: 0.5 });
   viewObs.observe(scroller);
 
-  // tear down when scroller leaves viewport
+  // teardown when leaving viewport
   const leaveObs = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (!entry.isIntersecting) shells.forEach(teardownShell);
-    });
+    entries.forEach(entry => { if (!entry.isIntersecting) shells.forEach(teardownShell); });
   }, { threshold: 0 });
   leaveObs.observe(scroller);
+
+  // init arrow state
+  updateArrows(0);
 }
 
 /* ── DESKTOP render ───────────────────────────────────────── */
@@ -216,9 +229,15 @@ function renderDesktop(projects, indexLabel) {
       const dotBtns = allFilms.map((_,i) =>
         `<button class="hscroll-dot${i===0?' active':''}" aria-label="Film ${i+1}"></button>`
       ).join('');
+      const arrowSVGL = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`;
+      const arrowSVGR = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
       filmsHTML = `
-        <div class="films-hscroll" id="hscroll-${p.id}">${slots}</div>
-        <div class="hscroll-dots">${dotBtns}</div>`;
+        <div class="hscroll-wrap">
+          <div class="hscroll-arrow left hidden">${arrowSVGL}</div>
+          <div class="films-hscroll" id="hscroll-${p.id}">${slots}</div>
+          <div class="hscroll-arrow right">${arrowSVGR}</div>
+          <div class="hscroll-dots">${dotBtns}</div>
+        </div>`;
     } else {
       // single film — plain shell, full width
       filmsHTML = `<div class="films single">${filmShell(allFilms[0])}</div>`;
