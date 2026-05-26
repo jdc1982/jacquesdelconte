@@ -95,8 +95,14 @@ function filmShell(f) {
   </div>`;
 }
 
+function featuringHTML(rows) {
+  const f = rows.find(c => c[0].toLowerCase() === 'featuring');
+  return f ? `<div class="p-featuring">Featuring ${f[1]}</div>` : '';
+}
 function creditsHTML(rows) {
-  return '<div class="credit-row">' + rows.map((c,i) =>
+  // Featuring is rendered separately via featuringHTML — exclude it here
+  const filtered = rows.filter(c => c[0].toLowerCase() !== 'featuring');
+  return '<div class="credit-row">' + filtered.map((c,i) =>
     `<span class="credit ${i===0?'lead':''}"><span class="role">${c[0]}</span><span class="name">${c[1]}</span></span>`
   ).join('') + '</div>';
 }
@@ -255,6 +261,7 @@ function renderDesktop(projects, indexLabel) {
       <div class="wrap">
         <div class="p-head reveal">
           <h2 class="p-title">${p.title}</h2>
+          ${featuringHTML(p.credits)}
           <div class="credits">${creditsHTML(p.credits)}</div>
         </div>
         <div class="reveal">${filmsHTML}</div>
@@ -310,7 +317,7 @@ function renderMobile(projects) {
       `<div class="m-video-unit" data-pi="${pi}" data-fi="${fi}">${filmShell(f)}</div>`
     ).join('');
     return `<div class="m-slide" data-idx="${pi}">
-      <div class="m-slide-info"><div class="m-title">${p.title}</div>${creditsHTML(p.credits)}</div>
+      <div class="m-slide-info"><div class="m-title">${p.title}</div>${featuringHTML(p.credits).replace('p-featuring','m-featuring')}${creditsHTML(p.credits)}</div>
       <div class="m-video-units" id="vunits-${pi}" style="--unit-count:${n}">${units}</div>
     </div>`;
   }).join('');
