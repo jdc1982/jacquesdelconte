@@ -283,16 +283,27 @@ function renderDesktop(projects, indexLabel) {
     initHScroller(scroller, shells);
   });
 
-  // Single-film + heroFilm desktop autoplay via IntersectionObserver
-  // injectIframe() tears down the previous shell via _activeShell — only 1 plays at a time
-  el.querySelectorAll('.films.single .video-shell').forEach(shell => {
-    const obs = new IntersectionObserver(entries => {
-      entries.forEach(e => {
-        if (e.isIntersecting && e.intersectionRatio >= 0.6) injectIframe(shell, true);
-      });
-    }, { threshold: 0.6 });
-    obs.observe(shell);
-  });
+  // Desktop: scroll-based single-video autoplay
+  // Use ONE observer across ALL shells. When a shell crosses 60% visibility,
+  // tear down the current active shell first, then play the new one.
+  const allShells = [...el.querySelectorAll('.video-shell')];
+
+  const singleObs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      const shell = e.target;
+      if (e.isIntersecting && e.intersectionRatio >= 0.6) {
+        // Only trigger if this shell isn't already playing
+        if (!shell.querySelector('iframe')) {
+          injectIframe(shell, true);
+        }
+      } else if (!e.isIntersecting && e.intersectionRatio === 0) {
+        // Fully off screen — tear down
+        teardownShell(shell);
+      }
+    });
+  }, { threshold: [0, 0.6] });
+
+  allShells.forEach(s => singleObs.observe(s));
 
   loadAllThumbnails();
 
