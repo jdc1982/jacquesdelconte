@@ -269,9 +269,12 @@ async function openPage(file,label){
 }
 
 function parseProjects(html){
-  const m=html.match(/const PROJECTS=(\[[\s\S]*?\]);\s*\ninitClientPage/);
+  const m=html.match(/const PROJECTS=([\[\s\S]*?\]);\s*\ninitClientPage/);
   if(!m) throw new Error('Could not find PROJECTS array');
-  return (new Function('return '+m[1]))();
+  const raw=(new Function('return '+m[1]))();
+  function dec(s){return String(s||'').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');}
+  function df(f){return {provider:f.provider,id:f.id,label:dec(f.label||''),poster:f.poster||''};}
+  return raw.map(p=>({id:p.id,title:dec(p.title),credits:(p.credits||[]).map(c=>[dec(c[0]),dec(c[1])]),heroFilm:p.heroFilm?df(p.heroFilm):undefined,films:(p.films||[]).map(df),layout:p.layout||'single'}));
 }
 
 function serializeProjects(ps){
