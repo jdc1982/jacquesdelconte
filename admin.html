@@ -195,7 +195,7 @@ function showPages(){
   document.getElementById('backBtn').style.display='none';
   setStatus('');
   document.getElementById('pagesGrid').innerHTML=PAGES.map(p=>
-    `<div class="page-card" onclick="openPage('${p.file}','${he(p.label)}')">
+    `<div class="page-card" onclick="openPage('${p.file}','${esc(p.label)}')">
       <h3>${p.label}</h3><p>${p.file}</p>
     </div>`).join('');
 }
@@ -246,7 +246,7 @@ async function createNewClient(){
     setStatus('Created!','saved');
     toast(`${label} created${thumb?' + added to homepage':''}`);
     toggleNewClientForm();
-    document.getElementById('pagesGrid').innerHTML=PAGES.map(p=>`<div class="page-card" onclick="openPage('${p.file}','${he(p.label)}')"><h3>${p.label}</h3><p>${p.file}</p></div>`).join('');
+    document.getElementById('pagesGrid').innerHTML=PAGES.map(p=>`<div class="page-card" onclick="openPage('${p.file}','${esc(p.label)}')"><h3>${p.label}</h3><p>${p.file}</p></div>`).join('');
     setTimeout(()=>openPage(`${slug}.html`,label),600);
   }catch(e){setStatus('Error','error');errEl.textContent='Error: '+e.message;errEl.style.display='block';}
 }
@@ -284,7 +284,14 @@ function serializeProjects(ps){
   return '[\n  '+ps.map(sp).join(',\n  ')+'\n]';
 }
 function esc(s){return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
-function he(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function he(s){
+  // For use inside HTML attribute values (double-quoted) and text content
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function ht(s){
+  // For visible text content only (no need to escape quotes)
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 
 function renderProjects(){
   const list=document.getElementById('projectList');
@@ -324,7 +331,7 @@ function cardHTML(p,pi){
   return `<div class="project-card" id="pc${pi}">
     <div class="project-head" onclick="toggleCard(${pi})">
       <span class="project-num">${String(pi+1).padStart(2,'0')}</span>
-      <span class="project-title-text">${he(p.title)}</span>
+      <span class="project-title-text">${ht(p.title)}</span>
       <span class="chevron">v</span>
     </div>
     <div class="project-body" id="pb${pi}">
