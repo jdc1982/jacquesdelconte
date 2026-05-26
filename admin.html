@@ -112,7 +112,20 @@ input,select,textarea,button{font-family:var(--sans)}
         <div class="field"><label>URL slug (auto)</label><input type="text" id="ncSlug" placeholder="e.g. chanel"></div>
       </div>
       <div class="field"><label>Subtitle (optional)</label><input type="text" id="ncSub" placeholder="e.g. N5 Campaign"></div>
-      <div class="field"><label>Thumbnail URL (optional — adds to homepage grid)</label><input type="text" id="ncThumb" placeholder="https://..."></div>
+      <div class="field">
+        <label>Thumbnail (optional — adds to homepage grid)</label>
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <input type="text" id="ncThumb" placeholder="Paste URL, or upload an image →" style="flex:1">
+          <label style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border:1px solid var(--line);font-size:11px;letter-spacing:.14em;text-transform:uppercase;background:var(--bg);white-space:nowrap;color:var(--ink)">
+            Upload Image
+            <input type="file" id="ncThumbFile" accept="image/*" style="display:none" onchange="handleThumbUpload(this)">
+          </label>
+        </div>
+        <div id="ncThumbPreview" style="margin-top:10px;display:none">
+          <img id="ncThumbImg" style="max-height:80px;max-width:200px;object-fit:cover;border:1px solid var(--line)">
+          <span id="ncThumbName" style="font-size:11px;color:var(--soft);margin-left:10px"></span>
+        </div>
+      </div>
       <div class="field-row">
         <div class="field"><label>Previous client name</label><input type="text" id="ncPrev" placeholder="e.g. Crown Royal"></div>
         <div class="field"><label>Next client name</label><input type="text" id="ncNext" placeholder="e.g. Louis Vuitton"></div>
@@ -214,6 +227,46 @@ function mkTemplate(label,slug,sub,prev,next){
   const ns=next.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
   const sh=sub?`<div class="sub">${sub}</div>`:'';
   return `<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">\n<title>${label} — Jacques del Conte</title>\n<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">\n<link rel="stylesheet" href="style.css">\n</head>\n<body class="client-page">\n<header><div class="bar"><a href="index.html" class="back">\u2190 All Work</a><a href="index.html" class="home">Jacques del Conte</a><div class="links"><a href="mailto:jacques@jacquesdelconte.com">Contact</a><a href="https://www.linkedin.com/in/jacquesdelconte/" target="_blank" rel="noopener">LinkedIn</a></div></div></header>\n<div class="m-progress" id="mProgress"></div>\n<div class="m-story-wrap" id="mStory"></div>\n<div class="m-nav-hint" id="mNavHint"><span>Swipe</span><span class="arr">\u2192</span></div>\n<main id="projects-desktop">\n  <section class="client-head wrap"><div class="eyebrow">Post Production</div><h1>${label}</h1>${sh}</section>\n  <nav class="index wrap"><div class="label">Projects</div><ul id="indexList"></ul></nav>\n  <div id="projects"></div>\n  <section class="pager wrap"><div class="pager-inner">\n    <a href="${ps}.html" class="prev"><div class="lbl">Previous</div><div class="nm">${prev}</div></a>\n    <a href="${ns}.html" class="next"><div class="lbl">Next</div><div class="nm">${next} \u2192</div></a>\n  </div></section>\n</main>\n<footer class="wrap"><a class="mail" href="mailto:jacques@jacquesdelconte.com">jacques@jacquesdelconte.com</a><div class="copy">\u00a9 <span id="year"></span> Jacques del Conte \u2014 Executive Producer &amp; Post Production Consultant</div></footer>\n<script src="client.js"><\/script>\n<script>\nconst PROJECTS=[\n  {id:'${slug}-1',title:'${label}',credits:[['EP of Post','Jacques del Conte']],films:[{provider:'vimeo',id:'',label:'',poster:''}],layout:'single'}\n];\ninitClientPage(PROJECTS);\n<\/script>\n</body></html>`;
+}
+
+async function handleThumbUpload(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(e){
+    const b64 = e.target.result.split(',')[1];
+    const ext = file.name.split('.').pop().toLowerCase();
+    const slug = document.getElementById('ncSlug').value || 'image';
+    const filename = `images/${slug}-thumb.${ext}`;
+    setStatus('Uploading image...','saving');
+    try{
+      // Check if file already exists to get SHA
+      let sha = '';
+      try{
+        const check = await ghGet(`/contents/${filename}`);
+        sha = check.sha;
+      }catch(e){}
+      const body = {message:`Upload thumbnail for ${slug}`,content:b64};
+      if(sha) body.sha = sha;
+      const r = await fetch(`${BASE}/contents/${filename}`,{
+        method:'PUT',
+        headers:{'Authorization':`token ${TOKEN}`,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
+        body:JSON.stringify(body)
+      });
+      const d = await r.json();
+      if(!d.content) throw new Error(d.message||'Upload failed');
+      const rawUrl = `https://raw.githubusercontent.com/jdc1982/jacquesdelconte/main/${filename}`;
+      document.getElementById('ncThumb').value = rawUrl;
+      document.getElementById('ncThumbImg').src = e.target.result;
+      document.getElementById('ncThumbName').textContent = file.name;
+      document.getElementById('ncThumbPreview').style.display = 'flex';
+      document.getElementById('ncThumbPreview').style.alignItems = 'center';
+      setStatus('Image uploaded','saved');
+    }catch(err){
+      setStatus('Upload failed: '+err.message,'error');
+    }
+  };
+  reader.readAsDataURL(file);
 }
 
 async function createNewClient(){
