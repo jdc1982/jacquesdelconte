@@ -284,13 +284,13 @@ function renderDesktop(projects, indexLabel) {
   });
 
   // Single-film + heroFilm desktop autoplay via IntersectionObserver
+  // injectIframe() tears down the previous shell via _activeShell — only 1 plays at a time
   el.querySelectorAll('.films.single .video-shell').forEach(shell => {
     const obs = new IntersectionObserver(entries => {
       entries.forEach(e => {
-        if (e.isIntersecting && e.intersectionRatio >= 0.5) injectIframe(shell, true);
-        else teardownShell(shell);
+        if (e.isIntersecting && e.intersectionRatio >= 0.6) injectIframe(shell, true);
       });
-    }, { threshold: 0.5 });
+    }, { threshold: 0.6 });
     obs.observe(shell);
   });
 
