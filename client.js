@@ -108,10 +108,22 @@ function creditsHTML(rows) {
 }
 
 /* ── Inject / teardown ────────────────────────────────────── */
+// ── One video at a time ──────────────────────────────────────
+let _activeShell = null;
+let _injectLock  = false;
+
 function injectIframe(shell, muted) {
   if (shell.querySelector('iframe')) return;
+  if (_injectLock) return;
   const { provider, id } = shell.dataset;
   if (!id || id==='VIDEO_ID') return;
+
+  // Tear down whatever is currently playing
+  if (_activeShell && _activeShell !== shell) teardownShell(_activeShell);
+  _activeShell = shell;
+  _injectLock  = true;
+  setTimeout(() => { _injectLock = false; }, 1000);
+
   const src = provider==='vimeo'
     ? `https://player.vimeo.com/video/${id}?autoplay=1&muted=${muted?1:0}&autopause=0&controls=0&title=0&byline=0&portrait=0&loop=0`
     : `https://www.youtube.com/embed/${id}?autoplay=1&mute=${muted?1:0}&rel=0&controls=0`;
@@ -133,6 +145,7 @@ function teardownShell(shell) {
   const pc  = url ? 'poster' : 'poster empty';
   shell.innerHTML = `<div class="${pc}" ${ps}></div><div class="play-hint"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>`;
   shell.style.cursor = 'pointer';
+  if (_activeShell === shell) _activeShell = null;
 }
 
 function teardownAllInSlide(slideEl) {
@@ -245,7 +258,7 @@ function renderDesktop(projects, indexLabel) {
     if (p.heroFilm && p.films.length > 0) {
       // Hero film standalone full-width, sub-films in scroller below
       filmsHTML  = `<div class="films single">${filmShell(p.heroFilm)}</div>`;
-      filmsHTML += `<div style="margin-top:clamp(12px,1.6vw,20px)">` + hscrollerHTML(p.films, p.id) + `</div>`;
+      filmsHTML += `<div style="margin-top:clamp(140px,20vh,240px)">` + hscrollerHTML(p.films, p.id) + `</div>`;
     } else if (p.heroFilm) {
       // Hero only, no sub-films
       filmsHTML = `<div class="films single">${filmShell(p.heroFilm)}</div>`;
@@ -288,20 +301,23 @@ function renderDesktop(projects, indexLabel) {
   // tear down the current active shell first, then play the new one.
   const allShells = [...el.querySelectorAll('.video-shell')];
 
+  let _obsTimer = null;
   const singleObs = new IntersectionObserver(entries => {
+    // Find the most visible shell across all entries
+    let best = null, bestRatio = 0;
     entries.forEach(e => {
-      const shell = e.target;
-      if (e.isIntersecting && e.intersectionRatio >= 0.6) {
-        // Only trigger if this shell isn't already playing
-        if (!shell.querySelector('iframe')) {
-          injectIframe(shell, true);
-        }
-      } else if (!e.isIntersecting && e.intersectionRatio === 0) {
-        // Fully off screen — tear down
-        teardownShell(shell);
+      if (e.isIntersecting && e.intersectionRatio > bestRatio) {
+        bestRatio = e.intersectionRatio; best = e.target;
       }
+      if (!e.isIntersecting && e.intersectionRatio === 0) teardownShell(e.target);
     });
-  }, { threshold: [0, 0.6] });
+    if (best && bestRatio >= 0.75) {
+      clearTimeout(_obsTimer);
+      _obsTimer = setTimeout(() => {
+        if (!best.querySelector('iframe')) injectIframe(best, true);
+      }, 150);
+    }
+  }, { threshold: [0, 0.25, 0.5, 0.75, 1.0] });
 
   allShells.forEach(s => singleObs.observe(s));
 
