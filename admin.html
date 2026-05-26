@@ -141,8 +141,42 @@ input,select,textarea,button{font-family:var(--sans)}
     <div class="editor-header">
       <h2 id="editorTitle"></h2>
       <div class="spacer"></div>
+      <button class="btn secondary small" onclick="togglePageSettings()">Page Settings</button>
       <button class="btn small green" onclick="addProject()">+ Add Project</button>
     </div>
+
+    <!-- Page settings panel -->
+    <div class="panel" id="pageSettingsPanel" style="display:none;margin-bottom:24px;max-width:100%">
+      <h3>Page Settings</h3>
+      <div class="field-row">
+        <div class="field"><label>Client Name (h1)</label><input type="text" id="psLabel" placeholder="e.g. Louis Vuitton"></div>
+        <div class="field"><label>Subtitle (optional)</label><input type="text" id="psSub" placeholder="e.g. Pasha Campaign"></div>
+      </div>
+      <div class="field">
+        <label>Homepage Thumbnail</label>
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <input type="text" id="psThumb" placeholder="Paste URL, or upload →" style="flex:1">
+          <label style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border:1px solid var(--line);font-size:11px;letter-spacing:.14em;text-transform:uppercase;background:var(--bg);white-space:nowrap;color:var(--ink)">
+            Upload Image
+            <input type="file" id="psThumbFile" accept="image/*" style="display:none" onchange="handlePageThumbUpload(this)">
+          </label>
+        </div>
+        <div id="psThumbPreview" style="margin-top:10px;display:none;align-items:center;gap:10px">
+          <img id="psThumbImg" style="max-height:80px;max-width:200px;object-fit:cover;border:1px solid var(--line)">
+          <span id="psThumbName" style="font-size:11px;color:var(--soft)"></span>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Previous client name</label><input type="text" id="psPrev" placeholder="e.g. Crown Royal"></div>
+        <div class="field"><label>Next client name</label><input type="text" id="psNext" placeholder="e.g. Louis Vuitton"></div>
+      </div>
+      <div class="panel-actions">
+        <button class="btn small" onclick="applyPageSettings()">Apply & Save</button>
+        <button class="btn secondary small" onclick="togglePageSettings()">Cancel</button>
+      </div>
+      <p class="err-msg" id="psErr"></p>
+    </div>
+
     <div class="project-list" id="projectList"></div>
   </div>
 </div>
@@ -302,6 +336,144 @@ async function createNewClient(){
     document.getElementById('pagesGrid').innerHTML=PAGES.map(p=>`<div class="page-card" onclick="openPage('${p.file}','${esc(p.label)}')"><h3>${p.label}</h3><p>${p.file}</p></div>`).join('');
     setTimeout(()=>openPage(`${slug}.html`,label),600);
   }catch(e){setStatus('Error','error');errEl.textContent='Error: '+e.message;errEl.style.display='block';}
+}
+
+function togglePageSettings(){
+  const panel = document.getElementById('pageSettingsPanel');
+  const isOpen = panel.style.display !== 'none';
+  if(!isOpen){
+    // Populate fields from current HTML
+    const labelM = currentHTML.match(/<h1>([^<]+)<\/h1>/);
+    const subM   = currentHTML.match(/<div class="sub">([^<]+)<\/div>/);
+    const prevM  = currentHTML.match(/class="prev"[^>]*>[^<]*<div class="lbl">Previous<\/div><div class="nm">([^<]+)<\/div>/);
+    const nextM  = currentHTML.match(/class="next"[^>]*>[^<]*<div class="lbl">Next<\/div><div class="nm">([^<]*?) ?→?<\/div>/);
+    if(labelM) document.getElementById('psLabel').value = labelM[1];
+    if(subM)   document.getElementById('psSub').value   = subM[1];
+    if(prevM)  document.getElementById('psPrev').value  = prevM[1].trim();
+    if(nextM)  document.getElementById('psNext').value  = nextM[1].trim();
+    // Try to find current thumb from index.html tile for this file
+    document.getElementById('psThumb').value = '';
+    document.getElementById('psThumbPreview').style.display = 'none';
+  }
+  panel.style.display = isOpen ? 'none' : 'block';
+}
+
+async function handlePageThumbUpload(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(e){
+    const b64 = e.target.result.split(',')[1];
+    const ext = file.name.split('.').pop().toLowerCase();
+    const slug = currentFile.replace('.html','');
+    const filename = `images/${slug}-thumb.${ext}`;
+    setStatus('Uploading image...','saving');
+    try{
+      let sha = '';
+      try{ const c=await ghGet(`/contents/${filename}`); sha=c.sha; }catch(e){}
+      const body={message:`Upload thumbnail for ${slug}`,content:b64};
+      if(sha) body.sha=sha;
+      const r=await fetch(`${BASE}/contents/${filename}`,{method:'PUT',headers:{'Authorization':`token ${TOKEN}`,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify(body)});
+      const d=await r.json();
+      if(!d.content) throw new Error(d.message||'Upload failed');
+      const rawUrl=`https://raw.githubusercontent.com/jdc1982/jacquesdelconte/main/${filename}`;
+      document.getElementById('psThumb').value=rawUrl;
+      document.getElementById('psThumbImg').src=e.target.result;
+      document.getElementById('psThumbName').textContent=file.name;
+      const prev=document.getElementById('psThumbPreview');
+      prev.style.display='flex'; prev.style.alignItems='center';
+      setStatus('Image uploaded','saved');
+    }catch(err){setStatus('Upload failed: '+err.message,'error');}
+  };
+  reader.readAsDataURL(file);
+}
+
+async function applyPageSettings(){
+  const label = document.getElementById('psLabel').value.trim();
+  const sub   = document.getElementById('psSub').value.trim();
+  const thumb = document.getElementById('psThumb').value.trim();
+  const prev  = document.getElementById('psPrev').value.trim();
+  const next  = document.getElementById('psNext').value.trim();
+  const errEl = document.getElementById('psErr');
+  errEl.style.display='none';
+
+  if(!label){errEl.textContent='Client name required';errEl.style.display='block';return;}
+
+  setStatus('Saving page settings...','saving');
+  try{
+    let updated = currentHTML;
+
+    // Update h1
+    updated = updated.replace(/<h1>[^<]+<\/h1>/, `<h1>${label}</h1>`);
+
+    // Update or add/remove subtitle
+    if(sub){
+      if(updated.includes('<div class="sub">')){
+        updated = updated.replace(/<div class="sub">[^<]+<\/div>/, `<div class="sub">${sub}</div>`);
+      } else {
+        updated = updated.replace(`<h1>${label}</h1>`, `<h1>${label}</h1><div class="sub">${sub}</div>`);
+      }
+    } else {
+      updated = updated.replace(/<div class="sub">[^<]+<\/div>/, '');
+    }
+
+    // Update prev/next if provided
+    if(prev){
+      updated = updated.replace(
+        /(<a href="[^"]*" class="prev">[\s\S]*?<div class="nm">)[^<]*(<\/div>)/,
+        `$1${prev}$2`
+      );
+    }
+    if(next){
+      const nextSlug = next.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+      updated = updated.replace(
+        /(<a href=")[^"]*(" class="next">)/,
+        `$1${nextSlug}.html$2`
+      );
+      updated = updated.replace(
+        /(<a [^>]*class="next"[^>]*>[\s\S]*?<div class="nm">)[^<]*(→?[\s]*<\/div>)/,
+        `$1${next} →$2`
+      );
+    }
+
+    // Update title tag
+    if(label) updated = updated.replace(/<title>[^<]+ — Jacques del Conte<\/title>/, `<title>${label} — Jacques del Conte</title>`);
+
+    // Save client page
+    const enc = btoa(unescape(encodeURIComponent(updated)));
+    const r = await ghPut(`/contents/${currentFile}`,{message:`Admin: update page settings for ${currentFile}`,content:enc,sha:currentSHA});
+    if(!r.content?.sha) throw new Error(r.message||'Save failed');
+    currentSHA = r.content.sha;
+    currentHTML = updated;
+
+    // Update homepage thumbnail if provided
+    if(thumb){
+      const ir = await fetch(`${BASE}/contents/index.html`,{headers:{'Authorization':`token ${TOKEN}`,'Accept':'application/vnd.github.v3+json'}});
+      const id = await ir.json();
+      let ihtml = decodeURIComponent(escape(atob(id.content.replace(/\n/g,''))));
+      const tileRe = new RegExp(`(<a class="tile reveal" href="${currentFile.replace('.','\.')}"[^>]*><img src=")[^"]*("`);
+      if(tileRe.test(ihtml)){
+        ihtml = ihtml.replace(tileRe, `$1${thumb}"`);
+      } else {
+        // tile doesn't exist — add it
+        const tile = `      <a class="tile reveal" href="${currentFile}"><img src="${thumb}" alt="${label}"><div class="cap"><span>${label}</span></div></a>\n`;
+        ihtml = ihtml.replace('    </div>\n  </section>\n  <section class="home-foot', tile+'    </div>\n  </section>\n  <section class="home-foot');
+      }
+      await fetch(`${BASE}/contents/index.html`,{method:'PUT',headers:{'Authorization':`token ${TOKEN}`,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify({message:`Update ${label} thumbnail`,content:btoa(unescape(encodeURIComponent(ihtml))),sha:id.sha})});
+    }
+
+    // Update admin PAGES label
+    const pg = PAGES.find(p=>p.file===currentFile);
+    if(pg) pg.label=label;
+    document.getElementById('editorTitle').textContent=label;
+
+    setStatus('Saved','saved');
+    toast('Page settings saved! Deploying in ~30s');
+    togglePageSettings();
+  }catch(e){
+    setStatus('Error','error');
+    errEl.textContent='Error: '+e.message; errEl.style.display='block';
+  }
 }
 
 async function openPage(file,label){
