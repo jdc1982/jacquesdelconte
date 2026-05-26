@@ -110,19 +110,18 @@ function creditsHTML(rows) {
 /* ── Inject / teardown ────────────────────────────────────── */
 // ── One video at a time ──────────────────────────────────────
 let _activeShell = null;
-let _injectLock  = false;
 
 function injectIframe(shell, muted) {
+  if (!shell) return;
   if (shell.querySelector('iframe')) return;
-  if (_injectLock) return;
   const { provider, id } = shell.dataset;
   if (!id || id==='VIDEO_ID') return;
 
-  // Tear down whatever is currently playing
+  // Tear down whatever is currently playing (one video at a time).
+  // Serialized via _activeShell; callers are debounced, so no time-lock
+  // is needed — a time-lock here strands slides that are only activated once.
   if (_activeShell && _activeShell !== shell) teardownShell(_activeShell);
   _activeShell = shell;
-  _injectLock  = true;
-  setTimeout(() => { _injectLock = false; }, 1000);
 
   const src = provider==='vimeo'
     ? `https://player.vimeo.com/video/${id}?autoplay=1&muted=${muted?1:0}&autopause=0&controls=0&title=0&byline=0&portrait=0&loop=0`
@@ -216,10 +215,10 @@ function initHScroller(scroller, shells) {
     });
   }
 
-  // autoplay when entering viewport
+  // autoplay when entering viewport (re-activates the current slot on re-entry)
   const viewObs = new IntersectionObserver(entries => {
     entries.forEach(entry => {
-      if (entry.isIntersecting) { activateSlot(activeIdx); viewObs.unobserve(entry.target); }
+      if (entry.isIntersecting) activateSlot(activeIdx);
     });
   }, { threshold: 0.5 });
   viewObs.observe(scroller);
@@ -296,10 +295,10 @@ function renderDesktop(projects, indexLabel) {
     initHScroller(scroller, shells);
   });
 
-  // Desktop: scroll-based single-video autoplay
-  // Use ONE observer across ALL shells. When a shell crosses 60% visibility,
-  // tear down the current active shell first, then play the new one.
-  const allShells = [...el.querySelectorAll('.video-shell')];
+  // Desktop: scroll-based single-video autoplay.
+  // Carousel (.films-hscroll) shells are managed by initHScroller — exclude them
+  // here so the two systems don't tear down / inject the same nodes against each other.
+  const allShells = [...el.querySelectorAll('.video-shell')].filter(s => !s.closest('.films-hscroll'));
 
   let _obsTimer = null;
   const singleObs = new IntersectionObserver(entries => {
