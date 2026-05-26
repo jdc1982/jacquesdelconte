@@ -165,6 +165,17 @@ input,select,textarea,button{font-family:var(--sans)}
           <img id="psThumbImg" style="max-height:80px;max-width:200px;object-fit:cover;border:1px solid var(--line)">
           <span id="psThumbName" style="font-size:11px;color:var(--soft)"></span>
         </div>
+        <div id="psReframe" style="margin-top:14px;display:none">
+          <label style="display:block;margin-bottom:8px">Reframe thumbnail <span style="color:var(--soft);text-transform:none;letter-spacing:0;font-size:11px">— drag the image to pan, use the slider to zoom (matches the 4:3 homepage tile)</span></label>
+          <div id="psFrameStage" style="position:relative;width:280px;max-width:100%;aspect-ratio:4/3;overflow:hidden;background:#eceae6;border:1px solid var(--line);cursor:grab;user-select:none;touch-action:none">
+            <img id="psFrameImg" draggable="false" style="position:absolute;width:100%;height:100%;object-fit:cover;object-position:50% 50%;transform:scale(1);transform-origin:50% 50%;pointer-events:none">
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;margin-top:10px;max-width:280px">
+            <span style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft)">Zoom</span>
+            <input type="range" id="psZoom" min="100" max="250" value="100" step="1" style="flex:1">
+            <button type="button" class="btn secondary small" onclick="resetFraming()" style="white-space:nowrap">Reset</button>
+          </div>
+        </div>
       </div>
       <div class="field-row">
         <div class="field"><label>Previous client name</label><input type="text" id="psPrev" placeholder="e.g. Crown Royal"></div>
@@ -351,9 +362,11 @@ function togglePageSettings(){
     if(subM)   document.getElementById('psSub').value   = subM[1];
     if(prevM)  document.getElementById('psPrev').value  = prevM[1].trim();
     if(nextM)  document.getElementById('psNext').value  = nextM[1].trim();
-    // Try to find current thumb from index.html tile for this file
+    // Try to find current thumb + framing from index.html tile for this file
     document.getElementById('psThumb').value = '';
     document.getElementById('psThumbPreview').style.display = 'none';
+    document.getElementById('psReframe').style.display = 'none';
+    loadTileFraming();
   }
   panel.style.display = isOpen ? 'none' : 'block';
 }
@@ -382,10 +395,84 @@ async function handlePageThumbUpload(input){
       document.getElementById('psThumbName').textContent=file.name;
       const prev=document.getElementById('psThumbPreview');
       prev.style.display='flex'; prev.style.alignItems='center';
+      showReframe(rawUrl,50,50,1);
       setStatus('Image uploaded','saved');
     }catch(err){setStatus('Upload failed: '+err.message,'error');}
   };
   reader.readAsDataURL(file);
+}
+
+/* ── Thumbnail reframe (non-destructive pan/zoom) ── */
+function renderFraming(){
+  const img=document.getElementById('psFrameImg'); if(!img) return;
+  img.style.objectPosition=`${_frame.fx}% ${_frame.fy}%`;
+  img.style.transformOrigin=`${_frame.fx}% ${_frame.fy}%`;
+  img.style.transform=`scale(${_frame.z})`;
+}
+function resetFraming(){
+  _frame.fx=50; _frame.fy=50; _frame.z=1;
+  const zr=document.getElementById('psZoom'); if(zr) zr.value=100;
+  renderFraming();
+}
+function showReframe(src,fx,fy,z){
+  _frame.src=src||''; _frame.fx=(fx==null?50:fx); _frame.fy=(fy==null?50:fy); _frame.z=(z==null?1:z);
+  const box=document.getElementById('psReframe'), img=document.getElementById('psFrameImg'), zr=document.getElementById('psZoom');
+  if(!box||!img) return;
+  if(!_frame.src){ box.style.display='none'; return; }
+  img.src=_frame.src;
+  if(zr) zr.value=Math.round(_frame.z*100);
+  box.style.display='block';
+  initReframeOnce();
+  renderFraming();
+}
+function initReframeOnce(){
+  const stage=document.getElementById('psFrameStage');
+  if(!stage||stage._wired) return; stage._wired=true;
+  let dragging=false, lx=0, ly=0;
+  stage.addEventListener('pointerdown',e=>{dragging=true;lx=e.clientX;ly=e.clientY;try{stage.setPointerCapture(e.pointerId);}catch(_){}stage.style.cursor='grabbing';});
+  stage.addEventListener('pointermove',e=>{
+    if(!dragging) return;
+    const r=stage.getBoundingClientRect();
+    const dx=e.clientX-lx, dy=e.clientY-ly; lx=e.clientX; ly=e.clientY;
+    // drag the image → shift the visible focal point in the opposite direction
+    _frame.fx=Math.max(0,Math.min(100,_frame.fx - dx/r.width*100/_frame.z));
+    _frame.fy=Math.max(0,Math.min(100,_frame.fy - dy/r.height*100/_frame.z));
+    renderFraming();
+  });
+  const end=()=>{dragging=false;stage.style.cursor='grab';};
+  stage.addEventListener('pointerup',end);
+  stage.addEventListener('pointercancel',end);
+  stage.addEventListener('pointerleave',end);
+  const zr=document.getElementById('psZoom');
+  if(zr) zr.addEventListener('input',()=>{_frame.z=Math.max(1,(+zr.value||100)/100);renderFraming();});
+}
+
+async function loadTileFraming(){
+  try{
+    const ir=await fetch(`${BASE}/contents/index.html`,{headers:{'Authorization':`token ${TOKEN}`,'Accept':'application/vnd.github.v3+json'}});
+    const id=await ir.json();
+    const ihtml=decodeURIComponent(escape(atob(id.content.replace(/\n/g,''))));
+    const re=new RegExp(`<a class="tile reveal" href="${escRe(currentFile)}"[^>]*>\\s*<img\\b([^>]*)>`);
+    const m=ihtml.match(re);
+    if(!m){ showReframe('',50,50,1); return; }
+    const attrs=m[1];
+    const srcM=attrs.match(/src="([^"]*)"/);
+    const styleM=attrs.match(/style="([^"]*)"/);
+    let fx=50,fy=50,z=1;
+    if(styleM){
+      const st=styleM[1];
+      const ox=st.match(/--ox:\s*([\d.]+)%/), oy=st.match(/--oy:\s*([\d.]+)%/), zz=st.match(/--z:\s*([\d.]+)/);
+      if(ox) fx=+ox[1]; if(oy) fy=+oy[1]; if(zz) z=+zz[1];
+    }
+    const src=srcM?srcM[1]:'';
+    if(src){
+      document.getElementById('psThumb').value=src;
+      document.getElementById('psThumbImg').src=src;
+      document.getElementById('psThumbName').textContent='current thumbnail';
+      const pv=document.getElementById('psThumbPreview'); pv.style.display='flex'; pv.style.alignItems='center';
+    }
+    showReframe(src,fx,fy,z);
+  }catch(e){/* non-fatal */}
 }
 
 async function applyPageSettings(){
@@ -446,17 +533,21 @@ async function applyPageSettings(){
     currentSHA = r.content.sha;
     currentHTML = updated;
 
-    // Update homepage thumbnail if provided
+    // Update homepage thumbnail + framing if a thumbnail is set
     if(thumb){
       const ir = await fetch(`${BASE}/contents/index.html`,{headers:{'Authorization':`token ${TOKEN}`,'Accept':'application/vnd.github.v3+json'}});
       const id = await ir.json();
       let ihtml = decodeURIComponent(escape(atob(id.content.replace(/\n/g,''))));
-      const tileRe = new RegExp(`(<a class="tile reveal" href="${currentFile.replace('.','\.')}"[^>]*><img src=")[^"]*("`);
-      if(tileRe.test(ihtml)){
-        ihtml = ihtml.replace(tileRe, `$1${thumb}"`);
+      const z = (+_frame.z || 1).toFixed(3).replace(/\.?0+$/,'');
+      const styleStr = `--ox:${_frame.fx}%;--oy:${_frame.fy}%;--z:${z}`;
+      const newImg = `<img src="${he(thumb)}" alt="${he(label)}" style="${styleStr}">`;
+      // Rewrite the <img> inside THIS file's tile (src + framing) in one pass
+      const tileImgRe = new RegExp(`(<a class="tile reveal" href="${escRe(currentFile)}"[^>]*>)\\s*<img\\b[^>]*>`);
+      if(tileImgRe.test(ihtml)){
+        ihtml = ihtml.replace(tileImgRe, (m,p1) => `${p1}${newImg}`);
       } else {
         // tile doesn't exist — add it
-        const tile = `      <a class="tile reveal" href="${currentFile}"><img src="${thumb}" alt="${label}"><div class="cap"><span>${label}</span></div></a>\n`;
+        const tile = `      <a class="tile reveal" href="${currentFile}">${newImg}<div class="cap"><span>${he(label)}</span></div></a>\n`;
         ihtml = ihtml.replace('    </div>\n  </section>\n  <section class="home-foot', tile+'    </div>\n  </section>\n  <section class="home-foot');
       }
       await fetch(`${BASE}/contents/index.html`,{method:'PUT',headers:{'Authorization':`token ${TOKEN}`,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify({message:`Update ${label} thumbnail`,content:btoa(unescape(encodeURIComponent(ihtml))),sha:id.sha})});
@@ -512,6 +603,9 @@ function serializeProjects(ps){
   return '[\n  '+ps.map(sp).join(',\n  ')+'\n]';
 }
 function esc(s){return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
+function escRe(s){return String(s||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+/* ── Thumbnail reframe (pan/zoom) state ── */
+const _frame = { fx:50, fy:50, z:1, src:'' };
 function he(s){
   // For use inside HTML attribute values (double-quoted) and text content
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
