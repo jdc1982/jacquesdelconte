@@ -166,17 +166,20 @@ function creditsHTML(rows) {
 // ── One video at a time ──────────────────────────────────────
 let _activeShell = null;
 
-function injectIframe(shell, muted) {
+function injectIframe(shell, muted, primary = true) {
   if (!shell) return;
   if (shell.querySelector('iframe')) return;
   const { provider, id } = shell.dataset;
   if (!id || id==='VIDEO_ID') return;
 
-  // Tear down whatever is currently playing (one video at a time).
-  // Serialized via _activeShell; callers are debounced, so no time-lock
-  // is needed — a time-lock here strands slides that are only activated once.
-  if (_activeShell && _activeShell !== shell) teardownShell(_activeShell);
-  _activeShell = shell;
+  // "Primary" = the one cross-section single-playback slot. Tearing down the
+  // previous primary stops a video when you scroll from one section to another.
+  // Carousel neighbours are injected as non-primary (preload) so they don't
+  // evict each other — the carousel manages its own teardown.
+  if (primary) {
+    if (_activeShell && _activeShell !== shell) teardownShell(_activeShell);
+    _activeShell = shell;
+  }
 
   const src = provider==='vimeo'
     ? `https://player.vimeo.com/video/${id}?autoplay=1&muted=${muted?1:0}&autopause=0&controls=0&title=0&byline=0&portrait=0&loop=0`
@@ -266,8 +269,22 @@ function initHScroller(scroller, shells) {
   }
 
   function activateSlot(idx) {
-    shells.forEach((s, i) => { if (i !== idx) teardownShell(s); });
-    injectIframe(shells[idx], true);
+    const keep = new Set([idx-1, idx, idx+1].filter(i => i >= 0 && i < total));
+    // Unload only slots that are no longer adjacent.
+    shells.forEach((s, i) => { if (!keep.has(i)) teardownShell(s); });
+    // Inject active + neighbours (all non-primary so they don't evict each other).
+    keep.forEach(i => injectIframe(shells[i], true, false));
+    _activeShell = shells[idx];           // mark active for cross-section logic
+    // Active plays from the start; neighbours sit pre-buffered and paused.
+    keep.forEach(i => {
+      const s = shells[i];
+      const apply = () => { try {
+        if (i === idx) { s._vp.setCurrentTime(0).catch(()=>{}); s._vp.play().catch(()=>{}); }
+        else { s._vp.pause().catch(()=>{}); }
+      } catch(_){} };
+      if (s._vp) s._vp.ready().then(apply).catch(()=>{});
+      else setTimeout(() => { if (s._vp) s._vp.ready().then(apply).catch(()=>{}); }, 400);
+    });
     updateDots(idx);
     updateArrows(idx);
   }
@@ -285,12 +302,13 @@ function initHScroller(scroller, shells) {
   window.addEventListener('mouseup', () => { isDragging = false; scroller.style.userSelect = ''; });
 
   scroller.addEventListener('scroll', () => {
-    shells.forEach(teardownShell);
+    // Don't tear down on every tick — neighbours are pre-buffered, so just
+    // settle on the new index and let activateSlot manage what stays loaded.
     clearTimeout(scrollTimer);
     scrollTimer = setTimeout(() => {
       activeIdx = Math.round(scroller.scrollLeft / slotWidth());
       activateSlot(activeIdx);
-    }, 150);
+    }, 120);
   }, { passive: true });
 
   // arrow clicks
@@ -399,13 +417,15 @@ function renderDesktop(projects, indexLabel) {
       }
       if (!e.isIntersecting && e.intersectionRatio === 0) teardownShell(e.target);
     });
-    if (best && bestRatio >= 0.75) {
+    // Start loading as soon as a video is approaching/half in view, so the
+    // player + first buffer are ready by the time it's centered.
+    if (best && bestRatio >= 0.4) {
       clearTimeout(_obsTimer);
       _obsTimer = setTimeout(() => {
         if (!best.querySelector('iframe')) injectIframe(best, true);
-      }, 150);
+      }, 60);
     }
-  }, { threshold: [0, 0.25, 0.5, 0.75, 1.0] });
+  }, { threshold: [0, 0.25, 0.4, 0.6, 1.0], rootMargin: '300px 0px 300px 0px' });
 
   allShells.forEach(s => singleObs.observe(s));
 
