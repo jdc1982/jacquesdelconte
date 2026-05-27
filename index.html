@@ -11,9 +11,10 @@
 <link rel="preconnect" href="https://player.vimeo.com" crossorigin><link rel="preconnect" href="https://i.vimeocdn.com" crossorigin><link rel="preconnect" href="https://f.vimeocdn.com" crossorigin><link rel="dns-prefetch" href="https://vod-progressive.akamaized.net"><link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div id="root">
 <header id="site-header">
   <div class="bar">
-    <a href="index.html" class="home">Jacques del Conte</a>
+    <a href="/" class="home">Jacques del Conte</a>
     <div class="links">
       <a href="#work">Work</a>
       <a href="mailto:jacques@jacquesdelconte.com">Contact</a>
@@ -59,13 +60,140 @@
     <div class="copy">© <span id="year"></span> Jacques del Conte — Executive Producer &amp; Post Production Consultant</div>
   </section>
 </main>
+</div>
+<script src="client.js"></script>
 <script>
-  document.getElementById('year').textContent=new Date().getFullYear();
-  const header=document.getElementById('site-header');
-  const hero=document.querySelector('.home-hero');
-  new IntersectionObserver(([e])=>{header.classList.toggle('show',!e.isIntersecting)},{threshold:0.15}).observe(hero);
-  const io=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:0.1,rootMargin:'0px 0px -6% 0px'});
-  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+/* ── SPA router ────────────────────────────────────────────────
+   Stay on index.html. Intercept tile / nav clicks, fetch the
+   target project's HTML, swap the contents of #root in place,
+   and pushState the URL. Keeps user activation (= sound autoplay)
+   intact across project navigation.
+   Direct hits on /armani.html still load that page server-side. */
+
+const HOME_TITLE = document.title;
+let _homeHTML = '';
+let _homeObservers = [];
+
+function disconnectHomeObservers() {
+  _homeObservers.forEach(o => { try { o.disconnect(); } catch(_){} });
+  _homeObservers = [];
+}
+
+function initHomeView() {
+  disconnectHomeObservers();
+  document.body.className = '';
+  document.title = HOME_TITLE;
+  const y = document.getElementById('year');
+  if (y) y.textContent = new Date().getFullYear();
+  const header = document.getElementById('site-header');
+  const hero = document.querySelector('.home-hero');
+  if (header && hero) {
+    const stickyObs = new IntersectionObserver(([e]) => {
+      header.classList.toggle('show', !e.isIntersecting);
+    }, { threshold: 0.15 });
+    stickyObs.observe(hero);
+    _homeObservers.push(stickyObs);
+  }
+  const revealObs = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) { en.target.classList.add('in'); revealObs.unobserve(en.target); }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -6% 0px' });
+  document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+  _homeObservers.push(revealObs);
+  bindSpaLinks();
+}
+
+function bindSpaLinks() {
+  document.querySelectorAll('a').forEach(a => {
+    if (a._spa) return;
+    const href = a.getAttribute('href');
+    if (!href) return;
+    const isProjectHtml = /^[a-z][a-z0-9-]*\.html$/i.test(href);
+    const isHome = href === '/' || href === 'index.html';
+    if (isProjectHtml || isHome) {
+      a.addEventListener('click', e => {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+        e.preventDefault();
+        navigate(href);
+      });
+      a._spa = true;
+    }
+  });
+}
+
+async function showProject(filename) {
+  try {
+    const res = await fetch(filename, { cache: 'force-cache' });
+    if (!res.ok) throw new Error('fetch ' + res.status);
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+
+    if (typeof destroyClientPage === 'function') destroyClientPage();
+    disconnectHomeObservers();
+
+    const parts = [
+      doc.querySelector('header'),
+      doc.querySelector('#mProgress'),
+      doc.querySelector('#mStory'),
+      doc.querySelector('#mNavHint'),
+      doc.querySelector('main'),
+      doc.querySelector('footer')
+    ].filter(Boolean).map(el => el.outerHTML).join('');
+
+    document.getElementById('root').innerHTML = parts;
+    document.body.className = doc.body.className;
+    document.title = doc.title;
+
+    const initScript = [...doc.querySelectorAll('script')].find(s => !s.src && /PROJECTS\s*=/.test(s.textContent));
+    if (initScript) {
+      let captured = null;
+      const fakeInit = (p, l) => { captured = { p: p, l: l }; };
+      try {
+        new Function('initClientPage', initScript.textContent)(fakeInit);
+      } catch (e) { console.error('PROJECTS parse failed', e); }
+      if (captured && typeof initClientPage === 'function') {
+        initClientPage(captured.p, captured.l);
+      }
+    }
+
+    bindSpaLinks();
+    window.scrollTo(0, 0);
+  } catch (e) {
+    console.error('showProject:', e);
+    location.href = filename; // graceful fallback to a real navigation
+  }
+}
+
+function showHome() {
+  if (typeof destroyClientPage === 'function') destroyClientPage();
+  document.getElementById('root').innerHTML = _homeHTML;
+  initHomeView();
+  window.scrollTo(0, 0);
+}
+
+function navigate(href) {
+  if (href === '/' || href === 'index.html') {
+    if (location.pathname !== '/' && location.pathname !== '/index.html') {
+      history.pushState({ view: 'home' }, '', '/');
+    }
+    showHome();
+  } else {
+    const fn = href.replace(/^\//, '');
+    history.pushState({ view: 'project', file: fn }, '', '/' + fn);
+    showProject(fn);
+  }
+}
+
+window.addEventListener('popstate', () => {
+  const path = location.pathname.replace(/^\//, '');
+  if (!path || path === 'index.html') showHome();
+  else if (path.endsWith('.html')) showProject(path);
+});
+
+// Capture initial home markup so we can restore it on back-nav, then init.
+_homeHTML = document.getElementById('root').innerHTML;
+initHomeView();
 </script>
 </body>
 </html>

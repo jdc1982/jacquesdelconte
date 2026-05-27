@@ -170,8 +170,24 @@ let _activeShell = null;
 // We start every video muted (reliable autoplay), then unmute the active
 // video on desktop as soon as the user has clicked/tapped/typed anywhere.
 let _userHasActivated = false;
+let _audioUnlockSetup = false;
+
+// ── SPA lifecycle: collect cleanup so we can re-init between projects ──
+// Each window/document listener and IntersectionObserver registers an
+// undo here; destroyClientPage() runs them all before the next init.
+let _pageTeardown = [];
+function onTeardown(fn) { _pageTeardown.push(fn); }
+function destroyClientPage() {
+  _pageTeardown.forEach(fn => { try { fn(); } catch (_) {} });
+  _pageTeardown = [];
+  if (_activeShell) { try { teardownShell(_activeShell); } catch (_) {} }
+  _activeShell = null;
+  document.documentElement.classList.remove('want-mobile');
+}
 
 function setupAudioUnlock() {
+  if (_audioUnlockSetup) return;
+  _audioUnlockSetup = true;
   const opts = { passive: true, capture: true };
   const events = ['pointerdown', 'keydown', 'touchstart'];
   const onAct = () => {
@@ -335,11 +351,14 @@ function initHScroller(scroller, shells) {
     isDragging = true; startX = e.pageX; startScroll = scroller.scrollLeft;
     scroller.style.userSelect = 'none';
   });
-  window.addEventListener('mousemove', e => {
+  const onMove = e => {
     if (!isDragging) return;
     scroller.scrollLeft = startScroll - (e.pageX - startX);
-  });
-  window.addEventListener('mouseup', () => { isDragging = false; scroller.style.userSelect = ''; });
+  };
+  const onUp = () => { isDragging = false; scroller.style.userSelect = ''; };
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+  onTeardown(() => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); });
 
   scroller.addEventListener('scroll', () => {
     // Don't tear down on every tick — neighbours are pre-buffered, so just
@@ -369,12 +388,14 @@ function initHScroller(scroller, shells) {
     });
   }, { threshold: 0.5 });
   viewObs.observe(scroller);
+  onTeardown(() => viewObs.disconnect());
 
   // teardown when leaving viewport
   const leaveObs = new IntersectionObserver(entries => {
     entries.forEach(entry => { if (!entry.isIntersecting) shells.forEach(teardownShell); });
   }, { threshold: 0 });
   leaveObs.observe(scroller);
+  onTeardown(() => leaveObs.disconnect());
 
   // init arrow state
   updateArrows(0);
@@ -470,6 +491,7 @@ function renderDesktop(projects, indexLabel) {
   }, { threshold: [0, 0.25, 0.5, 0.75, 1.0] });
 
   allShells.forEach(s => singleObs.observe(s));
+  onTeardown(() => singleObs.disconnect());
 
   loadAllThumbnails();
 
@@ -477,6 +499,7 @@ function renderDesktop(projects, indexLabel) {
     entries.forEach(en => { if(en.isIntersecting){ en.target.classList.add('in'); revealObs.unobserve(en.target); }});
   }, {threshold:0.08, rootMargin:'0px 0px -5% 0px'});
   document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+  onTeardown(() => revealObs.disconnect());
 }
 
 /* ── MOBILE render ────────────────────────────────────────── */
@@ -598,6 +621,11 @@ function initClientPage(projects, indexLabel) {
     if (m && !mobileBuilt) { renderMobile(projects); mobileBuilt = true; }
   }
   syncMode();
+  const onOrient = () => setTimeout(syncMode, 100);
   window.addEventListener('resize', syncMode);
-  window.addEventListener('orientationchange', () => setTimeout(syncMode, 100));
+  window.addEventListener('orientationchange', onOrient);
+  onTeardown(() => {
+    window.removeEventListener('resize', syncMode);
+    window.removeEventListener('orientationchange', onOrient);
+  });
 }
