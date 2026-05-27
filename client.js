@@ -229,7 +229,7 @@ function teardownShell(shell) {
   const iframe = shell.querySelector('iframe'); if (!iframe) return;
   clearTimeout(shell._revealTimer);
   shell.classList.remove('is-playing');
-  if (shell._vp) { try { shell._vp.unload && shell._vp.unload(); } catch (_) {} shell._vp = null; }
+  if (shell._vp) { try { shell._vp.pause && shell._vp.pause(); shell._vp.unload && shell._vp.unload(); } catch (_) {} shell._vp = null; }
   iframe.src = '';
   const url = shell.dataset.thumbUrl || '';
   const ps  = url ? `style="background-image:url('${url}');background-size:cover;background-position:center"` : '';
@@ -408,24 +408,26 @@ function renderDesktop(projects, indexLabel) {
   const allShells = [...el.querySelectorAll('.video-shell')].filter(s => !s.closest('.films-hscroll'));
 
   let _obsTimer = null;
+  // Single/hero videos play one-at-a-time (injecting a new primary tears down
+  // the previous). So we must NOT preload the next one early via rootMargin —
+  // that would evict the video you're still watching. Instead: no lookahead
+  // margin, a modest gate so it loads as it becomes the dominant video in view,
+  // and teardown the instant a video leaves the real viewport (stops audio).
   const singleObs = new IntersectionObserver(entries => {
-    // Find the most visible shell across all entries
     let best = null, bestRatio = 0;
     entries.forEach(e => {
       if (e.isIntersecting && e.intersectionRatio > bestRatio) {
         bestRatio = e.intersectionRatio; best = e.target;
       }
-      if (!e.isIntersecting && e.intersectionRatio === 0) teardownShell(e.target);
+      if (!e.isIntersecting) teardownShell(e.target);
     });
-    // Start loading as soon as a video is approaching/half in view, so the
-    // player + first buffer are ready by the time it's centered.
-    if (best && bestRatio >= 0.4) {
+    if (best && bestRatio >= 0.5) {
       clearTimeout(_obsTimer);
       _obsTimer = setTimeout(() => {
         if (!best.querySelector('iframe')) injectIframe(best, true);
-      }, 60);
+      }, 80);
     }
-  }, { threshold: [0, 0.25, 0.4, 0.6, 1.0], rootMargin: '300px 0px 300px 0px' });
+  }, { threshold: [0, 0.25, 0.5, 0.75, 1.0] });
 
   allShells.forEach(s => singleObs.observe(s));
 
