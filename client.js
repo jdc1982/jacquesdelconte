@@ -112,7 +112,8 @@ function buildControls(shell, startMuted) {
     <button class="jdc-btn" data-action="fs">${fsSVG}</button>
     <button class="jdc-btn jdc-mute" data-action="mute">${startMuted ? muteSVG : unmuteSVG}</button>`;
   ctrlTarget.appendChild(ctrl);
-  let playing = true, muted = !!startMuted;
+  shell._muted = !!startMuted;
+  let playing = true;
   ctrl.addEventListener('click', e => {
     e.stopPropagation();
     const btn = e.target.closest('[data-action]'); if (!btn) return;
@@ -127,8 +128,8 @@ function buildControls(shell, startMuted) {
         toggleFullscreen(shell);
         break;
       case 'mute':
-        muted=!muted; vimeoPost(iframe,'setVolume',muted?0:1);
-        btn.innerHTML = muted ? muteSVG : unmuteSVG; break;
+        setShellAudio(shell, shell._muted);  // currently muted → unmute (and vice-versa)
+        break;
     }
   });
   window.addEventListener('message', e => {
@@ -165,6 +166,31 @@ function creditsHTML(rows) {
 /* ── Inject / teardown ────────────────────────────────────── */
 // ── One video at a time ──────────────────────────────────────
 let _activeShell = null;
+// Browsers block audio autoplay until the user interacts with the page.
+// We start every video muted (reliable autoplay), then unmute the active
+// video on desktop as soon as the user has clicked/tapped/typed anywhere.
+let _userHasActivated = false;
+
+function setupAudioUnlock() {
+  const opts = { passive: true, capture: true };
+  const events = ['pointerdown', 'keydown', 'touchstart'];
+  const onAct = () => {
+    if (_userHasActivated) return;
+    _userHasActivated = true;
+    events.forEach(ev => document.removeEventListener(ev, onAct, opts));
+    if (_activeShell && !wantMobile()) setShellAudio(_activeShell, true);
+  };
+  events.forEach(ev => document.addEventListener(ev, onAct, opts));
+}
+
+function setShellAudio(shell, on) {
+  if (!shell) return;
+  shell._muted = !on;
+  const iframe = shell.querySelector('iframe');
+  if (iframe) vimeoPost(iframe, 'setVolume', on ? 1 : 0);
+  const btn = shell.querySelector('.jdc-mute');
+  if (btn) btn.innerHTML = on ? unmuteSVG : muteSVG;
+}
 
 function injectIframe(shell, muted, primary = true) {
   if (!shell) return;
@@ -212,7 +238,16 @@ function warmVimeo(shell, iframe) {
       shell._vp.ready().catch(()=>{});
       // Reveal once real frames are rendering (cleaner than showing the
       // player immediately and watching it flash a still then go black).
-      const reveal = () => { shell.classList.add('is-playing'); clearTimeout(shell._revealTimer); };
+      const reveal = () => {
+        shell.classList.add('is-playing');
+        clearTimeout(shell._revealTimer);
+        // Desktop: the active video plays with sound. Until the user has
+        // clicked/typed anywhere on the page, browser policy forces muted;
+        // setupAudioUnlock unmutes it as soon as that happens.
+        if (shell === _activeShell && !wantMobile() && _userHasActivated) {
+          setShellAudio(shell, true);
+        }
+      };
       shell._vp.on('timeupdate', reveal);
       shell._vp.on('playing', reveal);
     } catch (_) {}
@@ -549,6 +584,7 @@ function loadVimeoSDK() {
 function initClientPage(projects, indexLabel) {
   document.getElementById('year').textContent = new Date().getFullYear();
   loadVimeoSDK();
+  setupAudioUnlock();
   renderDesktop(projects, indexLabel);
   let mobileBuilt = false;
   function syncMode() {
