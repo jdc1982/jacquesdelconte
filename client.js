@@ -66,22 +66,36 @@ function toggleFullscreen(shell) {
   const nativeFsEl = document.fullscreenElement || document.webkitFullscreenElement;
   if (nativeFsEl) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
   if (shell.classList.contains('jdc-fs')) { exitPseudoFs(shell); return; }
-  // Prefer native fullscreen on the shell (contains the iframe). Fall back to
-  // CSS pseudo-fullscreen on iOS Safari, which can't fullscreen iframes/divs.
+
+  const iframe = shell.querySelector('iframe');
+
+  // 1) Native element fullscreen — works on desktop, Android, iPadOS.
   const req = shell.requestFullscreen || shell.webkitRequestFullscreen;
   if (req) {
     try {
       const r = req.call(shell);
-      if (r && typeof r.catch === 'function') r.catch(() => enterPseudoFs(shell));
-    } catch (_) { enterPseudoFs(shell); }
-  } else {
-    enterPseudoFs(shell);
+      if (r && typeof r.catch === 'function') r.catch(() => vimeoOrPseudoFs(shell, iframe));
+      return;
+    } catch (_) { /* fall through */ }
   }
+  // 2) iOS: ask the Vimeo player for true (native video) fullscreen, else pseudo.
+  vimeoOrPseudoFs(shell, iframe);
+}
+
+function vimeoOrPseudoFs(shell, iframe) {
+  if (window.Vimeo && iframe && shell.dataset.provider === 'vimeo') {
+    try {
+      const p = shell._vp || (shell._vp = new window.Vimeo.Player(iframe));
+      p.requestFullscreen().catch(() => enterPseudoFs(shell));
+      return;
+    } catch (_) { /* fall through */ }
+  }
+  enterPseudoFs(shell);
 }
 
 /* ── Controls ─────────────────────────────────────────────── */
 function buildControls(shell, startMuted) {
-  const isMobile = window.innerWidth <= 768;
+  const isMobile = wantMobile();
   // On mobile attach controls to the unit (parent of shell) so they sit below the video
   const ctrlTarget = isMobile && shell.closest('.m-video-unit') ? shell.closest('.m-video-unit') : shell;
   ctrlTarget.querySelectorAll('.jdc-ctrl').forEach(el => el.remove());
@@ -455,13 +469,34 @@ function renderMobile(projects) {
 }
 
 /* ── INIT ─────────────────────────────────────────────────── */
+// A phone in landscape is wider than 768px but very short — treat that as mobile too.
+function wantMobile() {
+  return window.matchMedia('(max-width:768px)').matches ||
+         window.matchMedia('(orientation:landscape) and (max-height:540px)').matches;
+}
+
+// Load the Vimeo Player SDK so we can request TRUE native fullscreen on iOS,
+// where the browser can't fullscreen a cross-origin iframe directly.
+function loadVimeoSDK() {
+  if (window.Vimeo || document.getElementById('vimeo-sdk')) return;
+  const s = document.createElement('script');
+  s.id = 'vimeo-sdk';
+  s.src = 'https://player.vimeo.com/api/player.js';
+  s.async = true;
+  document.head.appendChild(s);
+}
+
 function initClientPage(projects, indexLabel) {
   document.getElementById('year').textContent = new Date().getFullYear();
+  loadVimeoSDK();
   renderDesktop(projects, indexLabel);
-  if (window.innerWidth <= 768) renderMobile(projects);
-  let lastMobile = window.innerWidth <= 768;
-  window.addEventListener('resize', () => {
-    const now = window.innerWidth <= 768;
-    if (now !== lastMobile) { lastMobile = now; if (now) renderMobile(projects); }
-  });
+  let mobileBuilt = false;
+  function syncMode() {
+    const m = wantMobile();
+    document.documentElement.classList.toggle('want-mobile', m);
+    if (m && !mobileBuilt) { renderMobile(projects); mobileBuilt = true; }
+  }
+  syncMode();
+  window.addEventListener('resize', syncMode);
+  window.addEventListener('orientationchange', () => setTimeout(syncMode, 100));
 }
