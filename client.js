@@ -85,8 +85,12 @@ function toggleFullscreen(shell) {
 function vimeoOrPseudoFs(shell, iframe) {
   if (window.Vimeo && iframe && shell.dataset.provider === 'vimeo') {
     try {
-      const p = shell._vp || (shell._vp = new window.Vimeo.Player(iframe));
-      p.requestFullscreen().catch(() => enterPseudoFs(shell));
+      const p = warmVimeo(shell, iframe) || (shell._vp = new window.Vimeo.Player(iframe));
+      // Request fullscreen as soon as the player is ready. If it was warmed up
+      // at inject time, ready() resolves immediately and we stay within the tap.
+      Promise.resolve(p.ready())
+        .then(() => p.requestFullscreen())
+        .catch(() => enterPseudoFs(shell));
       return;
     } catch (_) { /* fall through */ }
   }
@@ -185,10 +189,29 @@ function injectIframe(shell, muted) {
   shell.appendChild(iframe);
   shell.style.cursor = 'default';
   buildControls(shell, muted);
+  // Warm up the Vimeo player now so its ready-handshake is done before the
+  // user taps fullscreen (otherwise the first tap rejects → fills window only).
+  if (provider === 'vimeo') warmVimeo(shell, iframe);
+}
+
+// Create/cache the Vimeo player and kick off its ready handshake.
+function warmVimeo(shell, iframe) {
+  if (shell._vp) return shell._vp;
+  const make = () => {
+    if (!window.Vimeo || shell._vp) return;
+    try { shell._vp = new window.Vimeo.Player(iframe); shell._vp.ready().catch(()=>{}); } catch (_) {}
+  };
+  if (window.Vimeo) make();
+  else {
+    const sdk = document.getElementById('vimeo-sdk');
+    if (sdk) sdk.addEventListener('load', make, { once: true });
+  }
+  return shell._vp;
 }
 
 function teardownShell(shell) {
   const iframe = shell.querySelector('iframe'); if (!iframe) return;
+  if (shell._vp) { try { shell._vp.unload && shell._vp.unload(); } catch (_) {} shell._vp = null; }
   iframe.src = '';
   const url = shell.dataset.thumbUrl || '';
   const ps  = url ? `style="background-image:url('${url}');background-size:cover;background-position:center"` : '';
