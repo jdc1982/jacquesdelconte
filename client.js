@@ -186,8 +186,13 @@ function setupAudioUnlock() {
 function setShellAudio(shell, on) {
   if (!shell) return;
   shell._muted = !on;
-  const iframe = shell.querySelector('iframe');
-  if (iframe) vimeoPost(iframe, 'setVolume', on ? 1 : 0);
+  // Prefer the SDK (queues until player is ready) over raw postMessage.
+  if (shell._vp) {
+    shell._vp.setVolume(on ? 1 : 0).catch(() => {});
+  } else {
+    const iframe = shell.querySelector('iframe');
+    if (iframe) vimeoPost(iframe, 'setVolume', on ? 1 : 0);
+  }
   const btn = shell.querySelector('.jdc-mute');
   if (btn) btn.innerHTML = on ? unmuteSVG : muteSVG;
 }
