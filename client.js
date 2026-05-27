@@ -42,6 +42,43 @@ function vimeoPost(iframe, method, value) {
   iframe.contentWindow.postMessage(JSON.stringify({ method, value }), '*');
 }
 
+/* ── Fullscreen ───────────────────────────────────────────── */
+const closeSVG = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>`;
+
+function enterPseudoFs(shell) {
+  shell.classList.add('jdc-fs');
+  document.body.classList.add('jdc-fs-lock');
+  if (!shell.querySelector('.jdc-fs-exit')) {
+    const x = document.createElement('button');
+    x.className = 'jdc-fs-exit';
+    x.innerHTML = closeSVG;
+    x.addEventListener('click', ev => { ev.stopPropagation(); exitPseudoFs(shell); });
+    shell.appendChild(x);
+  }
+}
+function exitPseudoFs(shell) {
+  shell.classList.remove('jdc-fs');
+  document.body.classList.remove('jdc-fs-lock');
+  const x = shell.querySelector('.jdc-fs-exit');
+  if (x) x.remove();
+}
+function toggleFullscreen(shell) {
+  const nativeFsEl = document.fullscreenElement || document.webkitFullscreenElement;
+  if (nativeFsEl) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
+  if (shell.classList.contains('jdc-fs')) { exitPseudoFs(shell); return; }
+  // Prefer native fullscreen on the shell (contains the iframe). Fall back to
+  // CSS pseudo-fullscreen on iOS Safari, which can't fullscreen iframes/divs.
+  const req = shell.requestFullscreen || shell.webkitRequestFullscreen;
+  if (req) {
+    try {
+      const r = req.call(shell);
+      if (r && typeof r.catch === 'function') r.catch(() => enterPseudoFs(shell));
+    } catch (_) { enterPseudoFs(shell); }
+  } else {
+    enterPseudoFs(shell);
+  }
+}
+
 /* ── Controls ─────────────────────────────────────────────── */
 function buildControls(shell, startMuted) {
   const isMobile = window.innerWidth <= 768;
@@ -69,8 +106,8 @@ function buildControls(shell, startMuted) {
       case 'rw': shell._seek=-15; vimeoPost(iframe,'getCurrentTime'); break;
       case 'ff': shell._seek= 15; vimeoPost(iframe,'getCurrentTime'); break;
       case 'fs':
-        if (iframe.requestFullscreen) iframe.requestFullscreen();
-        else if (iframe.webkitRequestFullscreen) iframe.webkitRequestFullscreen(); break;
+        toggleFullscreen(shell);
+        break;
       case 'mute':
         muted=!muted; vimeoPost(iframe,'setVolume',muted?0:1);
         btn.innerHTML = muted ? muteSVG : unmuteSVG; break;
