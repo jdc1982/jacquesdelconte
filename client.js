@@ -189,9 +189,14 @@ function injectIframe(shell, muted) {
   shell.appendChild(iframe);
   shell.style.cursor = 'default';
   buildControls(shell, muted);
+  // Reveal the iframe only once it's actually playing (see warmVimeo). Safety
+  // net: reveal anyway after 2.5s so a missed event never leaves it hidden.
+  clearTimeout(shell._revealTimer);
+  shell._revealTimer = setTimeout(() => shell.classList.add('is-playing'), 2500);
   // Warm up the Vimeo player now so its ready-handshake is done before the
   // user taps fullscreen (otherwise the first tap rejects → fills window only).
   if (provider === 'vimeo') warmVimeo(shell, iframe);
+  else iframe.addEventListener('load', () => shell.classList.add('is-playing'), { once: true });
 }
 
 // Create/cache the Vimeo player and kick off its ready handshake.
@@ -199,7 +204,15 @@ function warmVimeo(shell, iframe) {
   if (shell._vp) return shell._vp;
   const make = () => {
     if (!window.Vimeo || shell._vp) return;
-    try { shell._vp = new window.Vimeo.Player(iframe); shell._vp.ready().catch(()=>{}); } catch (_) {}
+    try {
+      shell._vp = new window.Vimeo.Player(iframe);
+      shell._vp.ready().catch(()=>{});
+      // Reveal once real frames are rendering (cleaner than showing the
+      // player immediately and watching it flash a still then go black).
+      const reveal = () => { shell.classList.add('is-playing'); clearTimeout(shell._revealTimer); };
+      shell._vp.on('timeupdate', reveal);
+      shell._vp.on('playing', reveal);
+    } catch (_) {}
   };
   if (window.Vimeo) make();
   else {
@@ -211,6 +224,8 @@ function warmVimeo(shell, iframe) {
 
 function teardownShell(shell) {
   const iframe = shell.querySelector('iframe'); if (!iframe) return;
+  clearTimeout(shell._revealTimer);
+  shell.classList.remove('is-playing');
   if (shell._vp) { try { shell._vp.unload && shell._vp.unload(); } catch (_) {} shell._vp = null; }
   iframe.src = '';
   const url = shell.dataset.thumbUrl || '';
