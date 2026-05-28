@@ -202,12 +202,22 @@ function setupAudioUnlock() {
 function setShellAudio(shell, on) {
   if (!shell) return;
   shell._muted = !on;
-  // Prefer the SDK (queues until player is ready) over raw postMessage.
+  // Vimeo: the video autoplays with muted=1. The reliable unmute is
+  // setMuted(false) THEN setVolume(1) (chained), per the SDK docs. Known SDK
+  // bug: setMuted can pause an autoplaying video (esp. Safari), so we call
+  // play() right after to keep it running.
   if (shell._vp) {
-    shell._vp.setVolume(on ? 1 : 0).catch(() => {});
+    shell._vp.setMuted(!on)
+      .then(() => shell._vp.setVolume(on ? 1 : 0))
+      .then(() => { if (on) return shell._vp.play(); })
+      .catch(() => {});
   } else {
     const iframe = shell.querySelector('iframe');
-    if (iframe) vimeoPost(iframe, 'setVolume', on ? 1 : 0);
+    if (iframe) {
+      vimeoPost(iframe, 'setMuted', !on);
+      vimeoPost(iframe, 'setVolume', on ? 1 : 0);
+      if (on) vimeoPost(iframe, 'play');
+    }
   }
   const btn = shell.querySelector('.jdc-mute');
   if (btn) btn.innerHTML = on ? unmuteSVG : muteSVG;
