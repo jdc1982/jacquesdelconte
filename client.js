@@ -185,14 +185,6 @@ function destroyClientPage() {
   document.documentElement.classList.remove('want-mobile');
 }
 
-// Decide whether a newly-injected video should start muted. If the user has
-// already interacted (sticky activation) and we're on desktop, start UNMUTED so
-// the video autoplays with sound directly — far more reliable than autoplaying
-// muted and trying to lift the muted flag after playback begins.
-function shouldStartMuted() {
-  return !(_userHasActivated && !wantMobile());
-}
-
 // Called from a genuine user gesture (e.g. the SPA tile/pager click). Records
 // activation so videos injected afterwards start unmuted, and unmutes whatever
 // is currently active. Safe to call repeatedly.
@@ -223,17 +215,16 @@ function setShellAudio(shell, on) {
   // bug: setMuted can pause an autoplaying video (esp. Safari), so we call
   // play() right after to keep it running.
   if (shell._vp) {
-    shell._vp.setMuted(!on)
-      .then(() => shell._vp.setVolume(on ? 1 : 0))
-      .then(() => { if (on) return shell._vp.play(); })
-      .then(() => { if (window._jdcAudioDebug) console.log('[audio] set', on?'UNMUTED':'muted', 'ok'); })
-      .catch((e) => { if (window._jdcAudioDebug) console.log('[audio] FAILED', on?'unmute':'mute', e && e.name, e && e.message); });
+    // Background mode honours setVolume without a gesture (the reference's
+    // mechanism). setMuted too, for normal embeds / belt-and-suspenders.
+    shell._vp.setVolume(on ? 1 : 0).catch(() => {});
+    shell._vp.setMuted(!on).catch(() => {});
+    if (window._jdcAudioDebug) console.log('[audio] set', on?'UNMUTED':'muted');
   } else {
     const iframe = shell.querySelector('iframe');
     if (iframe) {
-      vimeoPost(iframe, 'setMuted', !on);
       vimeoPost(iframe, 'setVolume', on ? 1 : 0);
-      if (on) vimeoPost(iframe, 'play');
+      vimeoPost(iframe, 'setMuted', !on);
     }
   }
   const btn = shell.querySelector('.jdc-mute');
@@ -255,14 +246,17 @@ function injectIframe(shell, muted, primary = true) {
     _activeShell = shell;
   }
 
-  // YouTube enforces a stricter autoplay policy than Vimeo and will refuse to
-  // autoplay unmuted even with activation, leaving a play button. Keep YT muted
-  // at load; only Vimeo honours the unmuted-start path.
+  // YouTube can't do gestureless unmute; keep it muted at load.
   if (provider !== 'vimeo') muted = true;
 
+  // Vimeo BACKGROUND mode (background=1) is the key: it autoplays muted (so no
+  // autoplay-policy violation) AND accepts a setVolume postMessage afterwards
+  // WITHOUT a user gesture. A normal embed won't unmute gesturelessly. We always
+  // load muted, then (desktop) raise volume ~1200ms later once the player has
+  // initialised — matching the working reference portfolio.
   const src = provider==='vimeo'
-    ? `https://player.vimeo.com/video/${id}?autoplay=1&muted=${muted?1:0}&autopause=0&controls=0&title=0&byline=0&portrait=0&loop=1&playsinline=1&transparent=0&quality=auto`
-    : `https://www.youtube.com/embed/${id}?autoplay=1&mute=${muted?1:0}&loop=1&controls=0&playlist=${id}&rel=0&playsinline=1&enablejsapi=1`;
+    ? `https://player.vimeo.com/video/${id}?background=1&autoplay=1&muted=1&loop=1&playsinline=1&transparent=0&quality=auto`
+    : `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&controls=0&playlist=${id}&rel=0&playsinline=1&enablejsapi=1`;
   const iframe = document.createElement('iframe');
   iframe.src = src;
   iframe.allow = 'autoplay; fullscreen; picture-in-picture';
@@ -270,15 +264,24 @@ function injectIframe(shell, muted, primary = true) {
   shell.innerHTML = '';
   shell.appendChild(iframe);
   shell.style.cursor = 'default';
-  buildControls(shell, muted);
-  // Reveal the iframe only once it's actually playing (see warmVimeo). Safety
-  // net: reveal anyway after 2.5s so a missed event never leaves it hidden.
+  shell._muted = true;
+  buildControls(shell, true);
+  // Reveal the iframe once playing; safety-net reveal at 2.5s.
   clearTimeout(shell._revealTimer);
   shell._revealTimer = setTimeout(() => shell.classList.add('is-playing'), 2500);
-  // Warm up the Vimeo player now so its ready-handshake is done before the
-  // user taps fullscreen (otherwise the first tap rejects → fills window only).
-  if (provider === 'vimeo') warmVimeo(shell, iframe);
-  else iframe.addEventListener('load', () => shell.classList.add('is-playing'), { once: true });
+  if (provider === 'vimeo') {
+    warmVimeo(shell, iframe);
+    // Desktop: turn sound on shortly after the player initialises. Background
+    // mode accepts this without a gesture. Mobile stays muted until a tap.
+    clearTimeout(shell._unmuteTimer);
+    if (!wantMobile() && primary) {
+      shell._unmuteTimer = setTimeout(() => {
+        if (shell === _activeShell && shell._muted) setShellAudio(shell, true);
+      }, 1200);
+    }
+  } else {
+    iframe.addEventListener('load', () => shell.classList.add('is-playing'), { once: true });
+  }
 }
 
 // Create/cache the Vimeo player and kick off its ready handshake.
@@ -294,13 +297,6 @@ function warmVimeo(shell, iframe) {
       const reveal = () => {
         shell.classList.add('is-playing');
         clearTimeout(shell._revealTimer);
-        // Auto-unmute the active video ONCE on desktop after activation.
-        // timeupdate fires continuously, so without this guard every tick would
-        // re-unmute and the user could never manually re-mute.
-        if (!shell._autoUnmuted && shell === _activeShell && !wantMobile() && _userHasActivated) {
-          shell._autoUnmuted = true;
-          setShellAudio(shell, true);
-        }
       };
       shell._vp.on('timeupdate', reveal);
       shell._vp.on('playing', reveal);
@@ -317,8 +313,8 @@ function warmVimeo(shell, iframe) {
 function teardownShell(shell) {
   const iframe = shell.querySelector('iframe'); if (!iframe) return;
   clearTimeout(shell._revealTimer);
+  clearTimeout(shell._unmuteTimer);
   shell.classList.remove('is-playing');
-  shell._autoUnmuted = false;
   if (shell._vp) { try { shell._vp.pause && shell._vp.pause(); shell._vp.unload && shell._vp.unload(); } catch (_) {} shell._vp = null; }
   iframe.src = '';
   const url = shell.dataset.thumbUrl || '';
@@ -372,8 +368,8 @@ function initHScroller(scroller, shells) {
         if (i === idx) {
           s._vp.setCurrentTime(0).catch(()=>{});
           s._vp.play().catch(()=>{});
-          if (!shouldStartMuted()) setShellAudio(s, true);  // desktop + activated → sound
-        } else { s._vp.pause().catch(()=>{}); }
+          if (!wantMobile()) setShellAudio(s, true);   // desktop → sound (background mode)
+        } else { s._vp.pause().catch(()=>{}); s._vp.setVolume(0).catch(()=>{}); }
       } catch(_){} };
       if (s._vp) s._vp.ready().then(apply).catch(()=>{});
       else setTimeout(() => { if (s._vp) s._vp.ready().then(apply).catch(()=>{}); }, 400);
@@ -522,7 +518,7 @@ function renderDesktop(projects, indexLabel) {
     if (best && bestRatio >= 0.5) {
       clearTimeout(_obsTimer);
       _obsTimer = setTimeout(() => {
-        if (!best.querySelector('iframe')) injectIframe(best, shouldStartMuted());
+        if (!best.querySelector('iframe')) injectIframe(best, true);
       }, 80);
     }
   }, { threshold: [0, 0.25, 0.5, 0.75, 1.0] });
