@@ -260,8 +260,8 @@ function injectIframe(shell, muted, primary = true) {
   if (provider !== 'vimeo') muted = true;
 
   const src = provider==='vimeo'
-    ? `https://player.vimeo.com/video/${id}?autoplay=1&muted=${muted?1:0}&autopause=0&controls=0&title=0&byline=0&portrait=0&loop=0`
-    : `https://www.youtube.com/embed/${id}?autoplay=1&mute=${muted?1:0}&rel=0&controls=0`;
+    ? `https://player.vimeo.com/video/${id}?autoplay=1&muted=${muted?1:0}&autopause=0&controls=0&title=0&byline=0&portrait=0&loop=1&playsinline=1&transparent=0&quality=auto`
+    : `https://www.youtube.com/embed/${id}?autoplay=1&mute=${muted?1:0}&loop=1&controls=0&playlist=${id}&rel=0&playsinline=1&enablejsapi=1`;
   const iframe = document.createElement('iframe');
   iframe.src = src;
   iframe.allow = 'autoplay; fullscreen; picture-in-picture';
