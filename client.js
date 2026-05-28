@@ -185,6 +185,14 @@ function destroyClientPage() {
   document.documentElement.classList.remove('want-mobile');
 }
 
+// Decide whether a newly-injected video should start muted. If the user has
+// already interacted (sticky activation) and we're on desktop, start UNMUTED so
+// the video autoplays with sound directly — far more reliable than autoplaying
+// muted and trying to lift the muted flag after playback begins.
+function shouldStartMuted() {
+  return !(_userHasActivated && !wantMobile());
+}
+
 function setupAudioUnlock() {
   if (_audioUnlockSetup) return;
   _audioUnlockSetup = true;
@@ -237,6 +245,11 @@ function injectIframe(shell, muted, primary = true) {
     if (_activeShell && _activeShell !== shell) teardownShell(_activeShell);
     _activeShell = shell;
   }
+
+  // YouTube enforces a stricter autoplay policy than Vimeo and will refuse to
+  // autoplay unmuted even with activation, leaving a play button. Keep YT muted
+  // at load; only Vimeo honours the unmuted-start path.
+  if (provider !== 'vimeo') muted = true;
 
   const src = provider==='vimeo'
     ? `https://player.vimeo.com/video/${id}?autoplay=1&muted=${muted?1:0}&autopause=0&controls=0&title=0&byline=0&portrait=0&loop=0`
@@ -345,8 +358,11 @@ function initHScroller(scroller, shells) {
     keep.forEach(i => {
       const s = shells[i];
       const apply = () => { try {
-        if (i === idx) { s._vp.setCurrentTime(0).catch(()=>{}); s._vp.play().catch(()=>{}); }
-        else { s._vp.pause().catch(()=>{}); }
+        if (i === idx) {
+          s._vp.setCurrentTime(0).catch(()=>{});
+          s._vp.play().catch(()=>{});
+          if (!shouldStartMuted()) setShellAudio(s, true);  // desktop + activated → sound
+        } else { s._vp.pause().catch(()=>{}); }
       } catch(_){} };
       if (s._vp) s._vp.ready().then(apply).catch(()=>{});
       else setTimeout(() => { if (s._vp) s._vp.ready().then(apply).catch(()=>{}); }, 400);
@@ -495,7 +511,7 @@ function renderDesktop(projects, indexLabel) {
     if (best && bestRatio >= 0.5) {
       clearTimeout(_obsTimer);
       _obsTimer = setTimeout(() => {
-        if (!best.querySelector('iframe')) injectIframe(best, true);
+        if (!best.querySelector('iframe')) injectIframe(best, shouldStartMuted());
       }, 80);
     }
   }, { threshold: [0, 0.25, 0.5, 0.75, 1.0] });
