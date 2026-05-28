@@ -381,14 +381,24 @@ function initHScroller(scroller, shells) {
     // Active plays from the start; neighbours sit pre-buffered and paused.
     keep.forEach(i => {
       const s = shells[i];
+      // Cancel any pending unmute on this shell from a previous activation;
+      // we'll re-arm it below only for the new active slide.
+      clearTimeout(s._unmuteTimer);
       const apply = () => { try {
         if (i === idx) {
           // Resume where the viewer left off (injectIframe seeks on ready);
           // only force start-from-0 if there's no saved position.
           if (!(s._resumeAt && s._resumeAt > 0.5)) s._vp.setCurrentTime(0).catch(()=>{});
           s._vp.play().catch(()=>{});
-          if (!wantMobile()) setShellAudio(s, true);   // desktop → sound (background mode)
-        } else { s._vp.pause().catch(()=>{}); s._vp.setVolume(0).catch(()=>{}); }
+          // Background mode rejects setVolume until playback has actually
+          // begun, so use the same ~1200ms delay as the single-video path
+          // (matches the working reference). ready() alone fires too early.
+          if (!wantMobile()) {
+            s._unmuteTimer = setTimeout(() => {
+              if (s === _activeShell && s._muted) setShellAudio(s, true);
+            }, 1200);
+          }
+        } else { s._vp.pause().catch(()=>{}); s._vp.setVolume(0).catch(()=>{}); s._muted = true; }
       } catch(_){} };
       if (s._vp) s._vp.ready().then(apply).catch(()=>{});
       else setTimeout(() => { if (s._vp) s._vp.ready().then(apply).catch(()=>{}); }, 400);
