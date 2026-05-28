@@ -271,6 +271,15 @@ function injectIframe(shell, muted, primary = true) {
   shell._revealTimer = setTimeout(() => shell.classList.add('is-playing'), 2500);
   if (provider === 'vimeo') {
     warmVimeo(shell, iframe);
+    // Resume where the viewer left off. Loop videos restart near the very end,
+    // so only resume if we're more than ~0.5s in and not within 1s of the end.
+    if (shell._resumeAt && shell._resumeAt > 0.5) {
+      const t = shell._resumeAt;
+      const seek = () => { try {
+        if (!shell._duration || t < shell._duration - 1) shell._vp.setCurrentTime(t).catch(()=>{});
+      } catch(_){} };
+      if (shell._vp) shell._vp.ready().then(seek).catch(()=>{});
+    }
     // Desktop: turn sound on shortly after the player initialises. Background
     // mode accepts this without a gesture. Mobile stays muted until a tap.
     clearTimeout(shell._unmuteTimer);
@@ -298,7 +307,15 @@ function warmVimeo(shell, iframe) {
         shell.classList.add('is-playing');
         clearTimeout(shell._revealTimer);
       };
-      shell._vp.on('timeupdate', reveal);
+      // Remember playback position so we can resume where the viewer left off
+      // when they scroll away and come back. timeupdate carries seconds/duration.
+      shell._vp.on('timeupdate', d => {
+        reveal();
+        if (d && typeof d.seconds === 'number') {
+          shell._resumeAt = d.seconds;
+          shell._duration = d.duration || shell._duration;
+        }
+      });
       shell._vp.on('playing', reveal);
     } catch (_) {}
   };
@@ -366,7 +383,9 @@ function initHScroller(scroller, shells) {
       const s = shells[i];
       const apply = () => { try {
         if (i === idx) {
-          s._vp.setCurrentTime(0).catch(()=>{});
+          // Resume where the viewer left off (injectIframe seeks on ready);
+          // only force start-from-0 if there's no saved position.
+          if (!(s._resumeAt && s._resumeAt > 0.5)) s._vp.setCurrentTime(0).catch(()=>{});
           s._vp.play().catch(()=>{});
           if (!wantMobile()) setShellAudio(s, true);   // desktop → sound (background mode)
         } else { s._vp.pause().catch(()=>{}); s._vp.setVolume(0).catch(()=>{}); }
