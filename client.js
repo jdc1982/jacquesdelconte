@@ -226,7 +226,8 @@ function setShellAudio(shell, on) {
     shell._vp.setMuted(!on)
       .then(() => shell._vp.setVolume(on ? 1 : 0))
       .then(() => { if (on) return shell._vp.play(); })
-      .catch(() => {});
+      .then(() => { if (window._jdcAudioDebug) console.log('[audio] set', on?'UNMUTED':'muted', 'ok'); })
+      .catch((e) => { if (window._jdcAudioDebug) console.log('[audio] FAILED', on?'unmute':'mute', e && e.name, e && e.message); });
   } else {
     const iframe = shell.querySelector('iframe');
     if (iframe) {
@@ -293,10 +294,11 @@ function warmVimeo(shell, iframe) {
       const reveal = () => {
         shell.classList.add('is-playing');
         clearTimeout(shell._revealTimer);
-        // Desktop: the active video plays with sound. Until the user has
-        // clicked/typed anywhere on the page, browser policy forces muted;
-        // setupAudioUnlock unmutes it as soon as that happens.
-        if (shell === _activeShell && !wantMobile() && _userHasActivated) {
+        // Auto-unmute the active video ONCE on desktop after activation.
+        // timeupdate fires continuously, so without this guard every tick would
+        // re-unmute and the user could never manually re-mute.
+        if (!shell._autoUnmuted && shell === _activeShell && !wantMobile() && _userHasActivated) {
+          shell._autoUnmuted = true;
           setShellAudio(shell, true);
         }
       };
@@ -316,6 +318,7 @@ function teardownShell(shell) {
   const iframe = shell.querySelector('iframe'); if (!iframe) return;
   clearTimeout(shell._revealTimer);
   shell.classList.remove('is-playing');
+  shell._autoUnmuted = false;
   if (shell._vp) { try { shell._vp.pause && shell._vp.pause(); shell._vp.unload && shell._vp.unload(); } catch (_) {} shell._vp = null; }
   iframe.src = '';
   const url = shell.dataset.thumbUrl || '';
