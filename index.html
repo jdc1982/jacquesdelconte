@@ -101,6 +101,9 @@ function initHomeView() {
   }, { threshold: 0.1, rootMargin: '0px 0px -6% 0px' });
   document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
   _homeObservers.push(revealObs);
+  // Start activation tracking on the homepage so any interaction here is
+  // recorded before the user navigates into a project.
+  if (typeof setupAudioUnlock === 'function') setupAudioUnlock();
   bindSpaLinks();
 }
 
@@ -115,6 +118,9 @@ function bindSpaLinks() {
       a.addEventListener('click', e => {
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
         e.preventDefault();
+        // This click is a genuine user gesture → record activation now so the
+        // project's first video can autoplay with sound.
+        if (typeof markUserActivated === 'function') markUserActivated();
         navigate(href);
       });
       a._spa = true;

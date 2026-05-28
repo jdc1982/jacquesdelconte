@@ -193,6 +193,14 @@ function shouldStartMuted() {
   return !(_userHasActivated && !wantMobile());
 }
 
+// Called from a genuine user gesture (e.g. the SPA tile/pager click). Records
+// activation so videos injected afterwards start unmuted, and unmutes whatever
+// is currently active. Safe to call repeatedly.
+function markUserActivated() {
+  _userHasActivated = true;
+  if (_activeShell && !wantMobile()) setShellAudio(_activeShell, true);
+}
+
 function setupAudioUnlock() {
   if (_audioUnlockSetup) return;
   _audioUnlockSetup = true;
