@@ -74,22 +74,30 @@ document.addEventListener('fullscreenchange', _onFsChange);
 document.addEventListener('webkitfullscreenchange', _onFsChange);
 
 function toggleFullscreen(shell) {
+  const DBG = window._jdcAudioDebug;
+  if (DBG) console.log('[fs] toggleFullscreen called');
   const nativeFsEl = document.fullscreenElement || document.webkitFullscreenElement;
-  if (nativeFsEl) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
-  if (shell.classList.contains('jdc-fs')) { exitPseudoFs(shell); return; }
+  if (nativeFsEl) { if(DBG) console.log('[fs] exiting'); (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
+  if (shell.classList.contains('jdc-fs')) { if(DBG) console.log('[fs] exit pseudo'); exitPseudoFs(shell); return; }
 
   const iframe = shell.querySelector('iframe');
+  if (DBG) console.log('[fs] iframe present:', !!iframe, '| shell.requestFullscreen:', typeof shell.requestFullscreen, '| webkit:', typeof shell.webkitRequestFullscreen);
 
   // 1) Native element fullscreen — works on desktop, Android, iPadOS.
   const req = shell.requestFullscreen || shell.webkitRequestFullscreen;
   if (req) {
     try {
       const r = req.call(shell);
-      if (r && typeof r.catch === 'function') r.catch(() => vimeoOrPseudoFs(shell, iframe));
+      if (DBG) console.log('[fs] requestFullscreen called, returned:', r);
+      if (r && typeof r.then === 'function') {
+        r.then(() => { if(DBG) console.log('[fs] native FS resolved OK'); })
+         .catch((e) => { if(DBG) console.log('[fs] native FS REJECTED:', e && e.name, e && e.message); vimeoOrPseudoFs(shell, iframe); });
+      }
       return;
-    } catch (_) { /* fall through */ }
+    } catch (e) { if(DBG) console.log('[fs] requestFullscreen THREW:', e && e.message); }
   }
   // 2) iOS: ask the Vimeo player for true (native video) fullscreen, else pseudo.
+  if (DBG) console.log('[fs] falling back to vimeoOrPseudoFs');
   vimeoOrPseudoFs(shell, iframe);
 }
 
@@ -136,9 +144,7 @@ function buildControls(shell, startMuted) {
       case 'rw': shell._seek=-15; vimeoPost(iframe,'getCurrentTime'); break;
       case 'ff': shell._seek= 15; vimeoPost(iframe,'getCurrentTime'); break;
       case 'fs':
-        // Capture current time so nothing restarts the video at 0, and flag
-        // that we're entering fullscreen so the audio logic won't reload the
-        // iframe (an src swap mid-fullscreen freezes the player).
+        if (window._jdcAudioDebug) console.log('[fs] button clicked');
         shell._fsActive = true;
         toggleFullscreen(shell);
         break;
