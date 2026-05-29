@@ -363,3 +363,17 @@ body.jdc-fs-lock{overflow:hidden !important;}
     width:100%;
   }
 }
+
+/* ── About page ─────────────────────────────────────────────── */
+/* Not a client video page: header always visible, normal scrolling. */
+body.about-page header{transform:none;opacity:1}
+body.about-page{overflow-x:hidden}
+@media(max-width:768px),(orientation:landscape) and (max-height:540px){
+  /* Ensure the About page is never locked like the client story view, and
+     that its nav links + footer remain visible on mobile. */
+  body.about-page{overflow:auto !important;height:auto !important}
+  body.about-page .bar .links{display:flex !important}
+  body.about-page footer{display:block !important}
+  .about-wrap{padding:6vh 20px 10vh}
+  .about-list{grid-template-columns:repeat(2,1fr)}
+}
