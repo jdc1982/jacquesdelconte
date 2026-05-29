@@ -264,6 +264,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(251,250,248,0.88);backd
   inset:0 !important;
   width:100% !important; height:100% !important;
   transform:none !important;
+  pointer-events:auto !important;
 }
 .video-shell.jdc-fs{
   position:fixed !important;
@@ -281,6 +282,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(251,250,248,0.88);backd
   width:100% !important; height:100% !important;
   min-width:0 !important; min-height:0 !important;
   transform:none !important;
+  pointer-events:auto !important;
 }
 .jdc-fs-exit{
   position:absolute; top:14px; right:14px;
