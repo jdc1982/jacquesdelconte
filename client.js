@@ -74,30 +74,22 @@ document.addEventListener('fullscreenchange', _onFsChange);
 document.addEventListener('webkitfullscreenchange', _onFsChange);
 
 function toggleFullscreen(shell) {
-  const DBG = window._jdcAudioDebug;
-  if (DBG) console.log('[fs] toggleFullscreen called');
   const nativeFsEl = document.fullscreenElement || document.webkitFullscreenElement;
-  if (nativeFsEl) { if(DBG) console.log('[fs] exiting'); (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
-  if (shell.classList.contains('jdc-fs')) { if(DBG) console.log('[fs] exit pseudo'); exitPseudoFs(shell); return; }
+  if (nativeFsEl) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
+  if (shell.classList.contains('jdc-fs')) { exitPseudoFs(shell); return; }
 
   const iframe = shell.querySelector('iframe');
-  if (DBG) console.log('[fs] iframe present:', !!iframe, '| shell.requestFullscreen:', typeof shell.requestFullscreen, '| webkit:', typeof shell.webkitRequestFullscreen);
 
   // 1) Native element fullscreen — works on desktop, Android, iPadOS.
   const req = shell.requestFullscreen || shell.webkitRequestFullscreen;
   if (req) {
     try {
       const r = req.call(shell);
-      if (DBG) console.log('[fs] requestFullscreen called, returned:', r);
-      if (r && typeof r.then === 'function') {
-        r.then(() => { if(DBG) console.log('[fs] native FS resolved OK'); })
-         .catch((e) => { if(DBG) console.log('[fs] native FS REJECTED:', e && e.name, e && e.message); vimeoOrPseudoFs(shell, iframe); });
-      }
+      if (r && typeof r.catch === 'function') r.catch(() => vimeoOrPseudoFs(shell, iframe));
       return;
-    } catch (e) { if(DBG) console.log('[fs] requestFullscreen THREW:', e && e.message); }
+    } catch (_) { /* fall through */ }
   }
   // 2) iOS: ask the Vimeo player for true (native video) fullscreen, else pseudo.
-  if (DBG) console.log('[fs] falling back to vimeoOrPseudoFs');
   vimeoOrPseudoFs(shell, iframe);
 }
 
@@ -144,7 +136,6 @@ function buildControls(shell, startMuted) {
       case 'rw': shell._seek=-15; vimeoPost(iframe,'getCurrentTime'); break;
       case 'ff': shell._seek= 15; vimeoPost(iframe,'getCurrentTime'); break;
       case 'fs':
-        if (window._jdcAudioDebug) console.log('[fs] button clicked');
         shell._fsActive = true;
         toggleFullscreen(shell);
         break;
@@ -264,7 +255,9 @@ function setShellAudio(shell, on) {
   const provider = shell.dataset.provider;
   const id = shell.dataset.id;
   const isBackground = iframe.src.indexOf('background=1') !== -1;
-  if (on && provider === 'vimeo' && isBackground && !shell._fsActive) {
+  const inFs = !!(document.fullscreenElement || document.webkitFullscreenElement) ||
+               shell._fsActive || shell.classList.contains('jdc-fs');
+  if (on && provider === 'vimeo' && isBackground && !inFs) {
     const t = (typeof shell._resumeAt === 'number' && shell._resumeAt > 0.5) ? shell._resumeAt : 0;
     // Non-background URL: controls hidden but audio honoured. muted=0 + a
     // sticky user gesture on the page means autoplay-with-sound is permitted.
@@ -536,6 +529,8 @@ function initHScroller(scroller, shells) {
 
   // teardown when leaving viewport
   const leaveObs = new IntersectionObserver(entries => {
+    if (document.fullscreenElement || document.webkitFullscreenElement ||
+        document.querySelector('.video-shell.jdc-fs')) return;
     entries.forEach(entry => { if (!entry.isIntersecting) shells.forEach(teardownShell); });
   }, { threshold: 0 });
   leaveObs.observe(scroller);
@@ -619,6 +614,11 @@ function renderDesktop(projects, indexLabel) {
   // margin, a modest gate so it loads as it becomes the dominant video in view,
   // and teardown the instant a video leaves the real viewport (stops audio).
   const singleObs = new IntersectionObserver(entries => {
+    // While any video is in fullscreen, the fullscreen layer reparents shells,
+    // which makes the observer report false "left viewport" events. Ignore them
+    // — tearing down or re-injecting here would wipe the video being watched.
+    if (document.fullscreenElement || document.webkitFullscreenElement ||
+        document.querySelector('.video-shell.jdc-fs')) return;
     let best = null, bestRatio = 0;
     entries.forEach(e => {
       if (e.isIntersecting && e.intersectionRatio > bestRatio) {
