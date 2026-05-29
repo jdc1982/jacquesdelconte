@@ -386,17 +386,23 @@ function initHScroller(scroller, shells) {
       clearTimeout(s._unmuteTimer);
       const apply = () => { try {
         if (i === idx) {
-          // Resume where the viewer left off (injectIframe seeks on ready);
-          // only force start-from-0 if there's no saved position.
-          if (!(s._resumeAt && s._resumeAt > 0.5)) s._vp.setCurrentTime(0).catch(()=>{});
+          // Only seek if we have a saved position to resume to. Seeking to 0
+          // on a fresh background-mode video can stall it before playback
+          // settles — autoplay already starts at 0.
+          if (s._resumeAt && s._resumeAt > 0.5 && (!s._duration || s._resumeAt < s._duration - 1)) {
+            s._vp.setCurrentTime(s._resumeAt).catch(()=>{});
+          }
           s._vp.play().catch(()=>{});
-          // Background mode rejects setVolume until playback has actually
-          // begun, so use the same ~1200ms delay as the single-video path
-          // (matches the working reference). ready() alone fires too early.
+          // Wait until the player reports it is actually playing before
+          // asking for volume. background mode silently drops setVolume
+          // before real playback has begun, which left carousel slides muted.
           if (!wantMobile()) {
-            s._unmuteTimer = setTimeout(() => {
-              if (s === _activeShell && s._muted) setShellAudio(s, true);
-            }, 1200);
+            const unmute = () => { if (s === _activeShell && s._muted) setShellAudio(s, true); };
+            // Belt-and-suspenders: fire on the next 'playing' event AND on a
+            // safety timer, so we still recover if the event was already missed.
+            const once = () => { unmute(); try { s._vp.off('playing', once); } catch(_){} };
+            try { s._vp.on('playing', once); } catch(_){}
+            s._unmuteTimer = setTimeout(unmute, 1500);
           }
         } else { s._vp.pause().catch(()=>{}); s._vp.setVolume(0).catch(()=>{}); s._muted = true; }
       } catch(_){} };
