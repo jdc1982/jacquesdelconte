@@ -210,16 +210,28 @@ function setupAudioUnlock() {
 function setShellAudio(shell, on) {
   if (!shell) return;
   shell._muted = !on;
-  // Vimeo: the video autoplays with muted=1. The reliable unmute is
-  // setMuted(false) THEN setVolume(1) (chained), per the SDK docs. Known SDK
-  // bug: setMuted can pause an autoplaying video (esp. Safari), so we call
-  // play() right after to keep it running.
   if (shell._vp) {
     // Background mode honours setVolume without a gesture (the reference's
     // mechanism). setMuted too, for normal embeds / belt-and-suspenders.
     shell._vp.setVolume(on ? 1 : 0).catch(() => {});
     shell._vp.setMuted(!on).catch(() => {});
     if (window._jdcAudioDebug) console.log('[audio] set', on?'UNMUTED':'muted');
+    // Verify the change actually took. Background mode sometimes silently
+    // drops the call (e.g. if real playback hadn't yet begun). Retry once
+    // after 600ms if the volume isn't where we asked for it.
+    if (on && !shell._audioVerified) {
+      shell._audioVerified = true;  // only one verification cycle per shell
+      setTimeout(() => {
+        if (!shell._vp || shell._muted) return;   // user re-muted manually; respect it
+        shell._vp.getVolume().then(v => {
+          if ((v || 0) < 0.5) {
+            if (window._jdcAudioDebug) console.log('[audio] retry — getVolume was', v);
+            try { shell._vp.setVolume(1).catch(()=>{}); } catch(_){}
+            try { shell._vp.setMuted(false).catch(()=>{}); } catch(_){}
+          }
+        }).catch(()=>{});
+      }, 600);
+    }
   } else {
     const iframe = shell.querySelector('iframe');
     if (iframe) {
@@ -280,13 +292,23 @@ function injectIframe(shell, muted, primary = true) {
       } catch(_){} };
       if (shell._vp) shell._vp.ready().then(seek).catch(()=>{});
     }
-    // Desktop: turn sound on shortly after the player initialises. Background
-    // mode accepts this without a gesture. Mobile stays muted until a tap.
+    // Desktop: turn sound on once the player is actually playing. Background
+    // mode silently drops setVolume before real playback has begun, so:
+    //  1. Check getPaused() to catch the already-playing case (autoplay may
+    //     have started before we bind anything).
+    //  2. Bind a one-shot 'playing' listener for the case it hasn't yet.
+    //  3. Safety timer in case both miss.
+    // Mobile stays muted until a tap.
     clearTimeout(shell._unmuteTimer);
     if (!wantMobile() && primary) {
-      shell._unmuteTimer = setTimeout(() => {
-        if (shell === _activeShell && shell._muted) setShellAudio(shell, true);
-      }, 1200);
+      const unmute = () => { if (shell === _activeShell && shell._muted) setShellAudio(shell, true); };
+      const bind = () => {
+        try { shell._vp.getPaused().then(p => { if (p === false) unmute(); }).catch(()=>{}); } catch(_){}
+        const once = () => { unmute(); try { shell._vp.off('playing', once); } catch(_){} };
+        try { shell._vp.on('playing', once); } catch(_){}
+      };
+      if (shell._vp) bind(); else setTimeout(() => { if (shell._vp) bind(); }, 400);
+      shell._unmuteTimer = setTimeout(unmute, 1500);
     }
   } else {
     iframe.addEventListener('load', () => shell.classList.add('is-playing'), { once: true });
@@ -331,6 +353,7 @@ function teardownShell(shell) {
   const iframe = shell.querySelector('iframe'); if (!iframe) return;
   clearTimeout(shell._revealTimer);
   clearTimeout(shell._unmuteTimer);
+  shell._audioVerified = false;
   shell.classList.remove('is-playing');
   if (shell._vp) { try { shell._vp.pause && shell._vp.pause(); shell._vp.unload && shell._vp.unload(); } catch (_) {} shell._vp = null; }
   iframe.src = '';
@@ -393,13 +416,18 @@ function initHScroller(scroller, shells) {
             s._vp.setCurrentTime(s._resumeAt).catch(()=>{});
           }
           s._vp.play().catch(()=>{});
-          // Wait until the player reports it is actually playing before
-          // asking for volume. background mode silently drops setVolume
-          // before real playback has begun, which left carousel slides muted.
+          // Unmute reliably. The 'playing' event may already have fired
+          // (background autoplay starts the instant the iframe loads, often
+          // before we get to bind a listener), so:
+          //  1. Check getPaused() — if it's already playing, unmute now.
+          //  2. Also bind a one-shot 'playing' listener for the case where
+          //     it hasn't started yet.
+          //  3. Safety timer in case both miss.
           if (!wantMobile()) {
             const unmute = () => { if (s === _activeShell && s._muted) setShellAudio(s, true); };
-            // Belt-and-suspenders: fire on the next 'playing' event AND on a
-            // safety timer, so we still recover if the event was already missed.
+            try {
+              s._vp.getPaused().then(p => { if (p === false) unmute(); }).catch(()=>{});
+            } catch(_){}
             const once = () => { unmute(); try { s._vp.off('playing', once); } catch(_){} };
             try { s._vp.on('playing', once); } catch(_){}
             s._unmuteTimer = setTimeout(unmute, 1500);
