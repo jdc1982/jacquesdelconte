@@ -210,34 +210,49 @@ function setupAudioUnlock() {
 function setShellAudio(shell, on) {
   if (!shell) return;
   shell._muted = !on;
-  if (shell._vp) {
-    // Background mode honours setVolume without a gesture (the reference's
-    // mechanism). setMuted too, for normal embeds / belt-and-suspenders.
-    shell._vp.setVolume(on ? 1 : 0).catch(() => {});
-    shell._vp.setMuted(!on).catch(() => {});
-    if (window._jdcAudioDebug) console.log('[audio] set', on?'UNMUTED':'muted');
-    // Verify the change actually took. Background mode sometimes silently
-    // drops the call (e.g. if real playback hadn't yet begun). Retry once
-    // after 600ms if the volume isn't where we asked for it.
-    if (on && !shell._audioVerified) {
-      shell._audioVerified = true;  // only one verification cycle per shell
-      setTimeout(() => {
-        if (!shell._vp || shell._muted) return;   // user re-muted manually; respect it
-        shell._vp.getVolume().then(v => {
-          if ((v || 0) < 0.5) {
-            if (window._jdcAudioDebug) console.log('[audio] retry — getVolume was', v);
-            try { shell._vp.setVolume(1).catch(()=>{}); } catch(_){}
-            try { shell._vp.setMuted(false).catch(()=>{}); } catch(_){}
-          }
-        }).catch(()=>{});
-      }, 600);
-    }
-  } else {
-    const iframe = shell.querySelector('iframe');
+  const iframe = shell.querySelector('iframe');
+  if (!shell._vp || !iframe) {
     if (iframe) {
       vimeoPost(iframe, 'setVolume', on ? 1 : 0);
       vimeoPost(iframe, 'setMuted', !on);
     }
+    const btn0 = shell.querySelector('.jdc-mute');
+    if (btn0) btn0.innerHTML = on ? unmuteSVG : muteSVG;
+    return;
+  }
+
+  // KEY INSIGHT: Vimeo's background=1 mode accepts setVolume/setMuted via the
+  // API and reports the new state via getVolume/getMuted, but can silently keep
+  // the underlying media element muted at the OS level. Re-issuing API calls
+  // doesn't help. The reliable fix is to swap the iframe src to the same video
+  // WITHOUT background=1 once we want sound. We preserve the current playback
+  // position so the swap is seamless.
+  const provider = shell.dataset.provider;
+  const id = shell.dataset.id;
+  const isBackground = iframe.src.indexOf('background=1') !== -1;
+  if (on && provider === 'vimeo' && isBackground) {
+    const t = (typeof shell._resumeAt === 'number' && shell._resumeAt > 0.5) ? shell._resumeAt : 0;
+    // Non-background URL: controls hidden but audio honoured. muted=0 + a
+    // sticky user gesture on the page means autoplay-with-sound is permitted.
+    const newSrc = `https://player.vimeo.com/video/${id}?autoplay=1&muted=0&loop=1&playsinline=1&controls=0&title=0&byline=0&portrait=0&transparent=0&quality=auto#t=${t}s`;
+    try {
+      shell._vp.pause && shell._vp.pause().catch(()=>{});
+      shell._vp.unload && shell._vp.unload().catch(()=>{});
+    } catch(_){}
+    shell._vp = null;
+    iframe.src = newSrc;
+    warmVimeo(shell, iframe);
+    if (window._jdcAudioDebug) console.log('[audio] swapped iframe to non-background at t=', t);
+  } else if (on && shell._vp) {
+    // Already on non-background iframe — API calls work normally here.
+    shell._vp.setVolume(1).catch(() => {});
+    shell._vp.setMuted(false).catch(() => {});
+    if (window._jdcAudioDebug) console.log('[audio] set UNMUTED (post-swap)');
+  } else if (!on && shell._vp) {
+    // Just lower volume; don't bother swapping back to background for mute.
+    shell._vp.setVolume(0).catch(() => {});
+    shell._vp.setMuted(true).catch(() => {});
+    if (window._jdcAudioDebug) console.log('[audio] set muted');
   }
   const btn = shell.querySelector('.jdc-mute');
   if (btn) btn.innerHTML = on ? unmuteSVG : muteSVG;
