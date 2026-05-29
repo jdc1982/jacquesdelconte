@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About — Jacques del Conte</title>
+<meta name="description" content="About Jacques del Conte — Executive Producer & Post Production Consultant.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  .about-main{min-height:calc(100vh - 120px)}
+  .about-wrap{max-width:760px;margin:0 auto;padding:8vh 24px 12vh}
+  .about-wrap .eyebrow{margin-bottom:18px}
+  .about-wrap h1{font-family:var(--serif);font-weight:400;font-size:clamp(2rem,5vw,3.2rem);line-height:1.1;margin:0 0 6px}
+  .about-role{font-family:var(--serif);font-style:italic;font-weight:300;font-size:clamp(1.05rem,2vw,1.35rem);color:var(--soft);margin:0 0 40px}
+  .about-body p{font-size:clamp(1rem,1.5vw,1.12rem);line-height:1.8;color:var(--ink);margin:0 0 22px;font-weight:300}
+  .about-rule{height:1px;background:var(--line);margin:44px 0}
+  .about-list{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px 24px}
+  .about-list li{font-size:.95rem;letter-spacing:.02em;color:var(--soft);line-height:1.5}
+  .about-contact{margin-top:44px;font-size:1rem}
+  .about-contact a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line);padding-bottom:2px}
+  .about-contact a:hover{border-color:var(--ink)}
+  .about-meta-label{text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:var(--soft);margin:0 0 14px}
+</style>
+</head>
+<body class="client-page">
+<header><div class="bar"><a href="index.html" class="back">← All Work</a><a href="index.html" class="home">Jacques del Conte</a><div class="links"><a href="about.html">About</a><a href="mailto:jacques@jacquesdelconte.com">Contact</a><a href="https://www.linkedin.com/in/jacquesdelconte/" target="_blank" rel="noopener">LinkedIn</a></div></div></header>
+<main class="about-main">
+  <div class="about-wrap">
+    <div class="eyebrow">About</div>
+    <h1>Jacques del Conte</h1>
+    <p class="about-role">Executive Producer &amp; Post Production Consultant</p>
+    <div class="about-body">
+      <!-- DRAFT BIO — built only from facts visible on this site. Replace bracketed
+           placeholders and edit freely; nothing here is invented beyond the public work. -->
+      <p>Jacques del Conte is an executive producer and post production consultant working at the intersection of fashion, beauty, and film. He partners with directors, agencies, and houses to shepherd projects through post — from edit and color through finishing and delivery — keeping the creative intent intact at every stage.</p>
+      <p>His work spans campaigns for some of the most recognizable names in luxury and beauty, including Louis Vuitton, Dior, Cartier, Gucci, Armani Beauty, Zara, Mugler, Alaïa, Zegna, Lancôme, and Dolce &amp; Gabbana, in collaboration with directors such as Fabien Baron, Brigitte Lacombe, Damien Chazelle, and Roman Coppola.</p>
+      <p>[Add a personal paragraph here: your background, how you came to post production, where you're based, and the approach or philosophy that defines how you like to work.]</p>
+    </div>
+
+    <div class="about-rule"></div>
+
+    <p class="about-meta-label">Selected Clients</p>
+    <ul class="about-list">
+      <li>Louis Vuitton</li><li>Dior</li><li>Cartier</li><li>Gucci</li>
+      <li>Armani Beauty</li><li>Zara</li><li>Mugler</li><li>Alaïa</li>
+      <li>Zegna</li><li>Pandora</li><li>Lancôme</li><li>Dolce &amp; Gabbana</li>
+      <li>Nars</li><li>Hugo Boss</li><li>Crown Royal</li>
+    </ul>
+
+    <div class="about-contact">
+      For projects and enquiries — <a href="mailto:jacques@jacquesdelconte.com">jacques@jacquesdelconte.com</a>
+      &nbsp;·&nbsp; <a href="https://www.linkedin.com/in/jacquesdelconte/" target="_blank" rel="noopener">LinkedIn ↗</a>
+    </div>
+  </div>
+</main>
+<footer class="wrap"><a class="mail" href="mailto:jacques@jacquesdelconte.com">jacques@jacquesdelconte.com</a><div class="copy">© <span id="year"></span> Jacques del Conte — Executive Producer &amp; Post Production Consultant</div></footer>
+<script>document.getElementById('year').textContent=new Date().getFullYear();</script>
+</body></html>
