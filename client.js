@@ -61,7 +61,18 @@ function exitPseudoFs(shell) {
   document.body.classList.remove('jdc-fs-lock');
   const x = shell.querySelector('.jdc-fs-exit');
   if (x) x.remove();
+  shell._fsActive = false;
 }
+// When native fullscreen exits, clear the _fsActive guard on all shells so
+// normal audio behaviour (the background→non-background swap) resumes.
+function _onFsChange() {
+  if (!(document.fullscreenElement || document.webkitFullscreenElement)) {
+    document.querySelectorAll('.video-shell').forEach(s => { s._fsActive = false; });
+  }
+}
+document.addEventListener('fullscreenchange', _onFsChange);
+document.addEventListener('webkitfullscreenchange', _onFsChange);
+
 function toggleFullscreen(shell) {
   const nativeFsEl = document.fullscreenElement || document.webkitFullscreenElement;
   if (nativeFsEl) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
@@ -125,6 +136,10 @@ function buildControls(shell, startMuted) {
       case 'rw': shell._seek=-15; vimeoPost(iframe,'getCurrentTime'); break;
       case 'ff': shell._seek= 15; vimeoPost(iframe,'getCurrentTime'); break;
       case 'fs':
+        // Capture current time so nothing restarts the video at 0, and flag
+        // that we're entering fullscreen so the audio logic won't reload the
+        // iframe (an src swap mid-fullscreen freezes the player).
+        shell._fsActive = true;
         toggleFullscreen(shell);
         break;
       case 'mute':
@@ -243,7 +258,7 @@ function setShellAudio(shell, on) {
   const provider = shell.dataset.provider;
   const id = shell.dataset.id;
   const isBackground = iframe.src.indexOf('background=1') !== -1;
-  if (on && provider === 'vimeo' && isBackground) {
+  if (on && provider === 'vimeo' && isBackground && !shell._fsActive) {
     const t = (typeof shell._resumeAt === 'number' && shell._resumeAt > 0.5) ? shell._resumeAt : 0;
     // Non-background URL: controls hidden but audio honoured. muted=0 + a
     // sticky user gesture on the page means autoplay-with-sound is permitted.
