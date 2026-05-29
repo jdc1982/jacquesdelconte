@@ -244,6 +244,27 @@ header{position:sticky;top:0;z-index:200;background:rgba(251,250,248,0.88);backd
 }
 
 /* ── Fullscreen fallback (iOS Safari can't fullscreen iframes) ── */
+/* Native element fullscreen: neutralise the shell's normal size/aspect
+   constraints so it fills the screen. Without this, native-aspect videos
+   (those with an inline aspect-ratio + capped height) stay locked to their
+   small box inside the fullscreen void and appear frozen. */
+.video-shell:fullscreen,
+.video-shell:-webkit-full-screen{
+  width:100vw !important;
+  height:100vh !important;
+  max-width:none !important;
+  aspect-ratio:auto !important;
+  margin:0 !important;
+  background:#000 !important;
+  display:flex; align-items:center; justify-content:center;
+}
+.video-shell:fullscreen iframe,
+.video-shell:-webkit-full-screen iframe{
+  position:absolute !important;
+  inset:0 !important;
+  width:100% !important; height:100% !important;
+  transform:none !important;
+}
 .video-shell.jdc-fs{
   position:fixed !important;
   inset:0 !important;
