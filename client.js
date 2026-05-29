@@ -132,16 +132,25 @@ function buildControls(shell, startMuted) {
         break;
     }
   });
-  window.addEventListener('message', e => {
-    try {
-      const d = typeof e.data==='string'?JSON.parse(e.data):e.data;
-      if (d.method==='getCurrentTime' && shell._seek!==undefined) {
-        vimeoPost(shell.querySelector('iframe'),'setCurrentTime',Math.max(0,(d.value||0)+shell._seek));
-        delete shell._seek;
-      }
-    } catch {}
-  });
 }
+
+// ── Single global listener for Vimeo getCurrentTime replies (for ±15s seek) ──
+// One listener for the whole app, not one per shell (which leaked across SPA
+// navigations). Matches the message to its shell via the iframe's contentWindow.
+function handleSeekMessage(e) {
+  let d; try { d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch { return; }
+  if (!d || d.method !== 'getCurrentTime') return;
+  const shells = document.querySelectorAll('.video-shell');
+  for (const shell of shells) {
+    const iframe = shell.querySelector('iframe');
+    if (iframe && iframe.contentWindow === e.source && shell._seek !== undefined) {
+      vimeoPost(iframe, 'setCurrentTime', Math.max(0, (d.value || 0) + shell._seek));
+      delete shell._seek;
+      return;
+    }
+  }
+}
+window.addEventListener('message', handleSeekMessage);
 
 /* ── Shell HTML ───────────────────────────────────────────── */
 function filmShell(f) {
@@ -368,7 +377,6 @@ function teardownShell(shell) {
   const iframe = shell.querySelector('iframe'); if (!iframe) return;
   clearTimeout(shell._revealTimer);
   clearTimeout(shell._unmuteTimer);
-  shell._audioVerified = false;
   shell.classList.remove('is-playing');
   if (shell._vp) { try { shell._vp.pause && shell._vp.pause(); shell._vp.unload && shell._vp.unload(); } catch (_) {} shell._vp = null; }
   iframe.src = '';
