@@ -312,3 +312,31 @@ body.jdc-fs-lock{overflow:hidden !important;}
     margin-bottom:clamp(56px,9vh,80px);
   }
 }
+
+/* ── Native-aspect (de-pillarboxed) videos: height-capped & centered ── */
+/* Shells given an inline aspect-ratio are non-16:9 sources. On desktop, cap
+   their height and derive width from the ratio so the whole frame shows with
+   no bars, centered in the column instead of stretching full-width-tall. */
+@media(min-width:769px) and (min-height:541px){
+  .films.single .video-shell[style*="aspect-ratio"]{
+    width:auto;
+    max-width:100%;
+    height:min(80vh,820px);
+    margin-inline:auto;
+  }
+  /* In a carousel slot, fit within the slot and centre. */
+  .films-hscroll .hslot .video-shell[style*="aspect-ratio"]{
+    width:auto;
+    max-width:100%;
+    height:min(72vh,760px);
+    margin-inline:auto;
+  }
+}
+/* Mobile: a non-16:9 source keeps its native ratio at full width (taller box).
+   The inline aspect-ratio on the shell already does this; we just ensure the
+   mobile 16:9 override doesn't force it back. */
+@media(max-width:768px),(orientation:landscape) and (max-height:540px){
+  .m-video-unit .video-shell[style*="aspect-ratio"]{
+    width:100%;
+  }
+}

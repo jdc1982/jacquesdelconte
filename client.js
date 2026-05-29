@@ -154,7 +154,11 @@ window.addEventListener('message', handleSeekMessage);
 
 /* ── Shell HTML ───────────────────────────────────────────── */
 function filmShell(f) {
-  return `<div class="video-shell" data-provider="${f.provider}" data-id="${f.id}" data-label="${f.label||''}">
+  // Optional native aspect ratio (e.g. "5/4", "1/1") for videos whose source
+  // isn't 16:9. Overrides the default 16:9 shell so the whole frame shows with
+  // no pillarbox bars and nothing cropped.
+  const arStyle = f.ar ? ` style="aspect-ratio:${f.ar}"` : '';
+  return `<div class="video-shell" data-provider="${f.provider}" data-id="${f.id}" data-label="${f.label||''}"${arStyle}>
     <div class="poster empty"></div>
     <div class="play-hint"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
   </div>`;
