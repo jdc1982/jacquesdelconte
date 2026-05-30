@@ -582,6 +582,7 @@ function renderDesktop(projects, indexLabel) {
           <h2 class="p-title">${p.title}</h2>
           ${featuringHTML(p.credits)}
           <div class="credits">${creditsHTML(p.credits)}</div>
+          ${p.desc ? `<p class="p-desc">${p.desc}</p>` : ''}
         </div>
         <div class="reveal">${filmsHTML}</div>
       </div>
@@ -661,7 +662,7 @@ function renderMobile(projects) {
       `<div class="m-video-unit" data-pi="${pi}" data-fi="${fi}">${filmShell(f)}</div>`
     ).join('');
     return `<div class="m-slide" data-idx="${pi}">
-      <div class="m-slide-info"><div class="m-title">${p.title}</div>${featuringHTML(p.credits).replace('p-featuring','m-featuring')}${creditsHTML(p.credits)}</div>
+      <div class="m-slide-info"><div class="m-title">${p.title}</div>${featuringHTML(p.credits).replace('p-featuring','m-featuring')}${creditsHTML(p.credits)}${p.desc?`<p class="m-desc">${p.desc}</p>`:''}</div>
       <div class="m-video-units" id="vunits-${pi}" style="--unit-count:${n}">${units}</div>
     </div>`;
   }).join('');

@@ -376,3 +376,16 @@ body.about-page{overflow-x:hidden}
   body.about-page footer{display:block !important}
   .about-wrap{padding:6vh 20px 10vh}
 }
+
+/* ── Project description (optional per-project blurb) ─────────── */
+.p-desc{
+  max-width:620px;margin:26px auto 0;
+  font-family:var(--sans);font-weight:300;
+  font-size:clamp(.95rem,1.4vw,1.05rem);line-height:1.7;
+  color:var(--soft);text-align:center;
+}
+.m-desc{
+  margin:12px auto 0;max-width:90%;
+  font-family:var(--sans);font-weight:300;
+  font-size:.9rem;line-height:1.6;color:var(--soft);text-align:center;
+}
