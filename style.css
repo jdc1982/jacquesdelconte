@@ -375,5 +375,4 @@ body.about-page{overflow-x:hidden}
   body.about-page .bar .links{display:flex !important}
   body.about-page footer{display:block !important}
   .about-wrap{padding:6vh 20px 10vh}
-  .about-list{grid-template-columns:repeat(2,1fr)}
 }
