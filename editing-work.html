@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>Editing Work — Jacques del Conte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://player.vimeo.com" crossorigin><link rel="preconnect" href="https://i.vimeocdn.com" crossorigin><link rel="preconnect" href="https://f.vimeocdn.com" crossorigin><link rel="dns-prefetch" href="https://vod-progressive.akamaized.net"><link rel="stylesheet" href="style.css">
+</head>
+<body class="client-page">
+<header><div class="bar"><a href="index.html" class="back">← All Work</a><a href="index.html" class="home">Jacques del Conte</a><div class="links"><a href="about.html">About</a><a href="mailto:jacques@jacquesdelconte.com">Contact</a><a href="https://www.linkedin.com/in/jacquesdelconte/" target="_blank" rel="noopener">LinkedIn</a></div></div></header>
+<div class="m-progress" id="mProgress"></div>
+<div class="m-story-wrap" id="mStory"></div>
+<div class="m-nav-hint" id="mNavHint"><span>Swipe</span><span class="arr">→</span></div>
+<main id="projects-desktop">
+  <section class="client-head wrap"><div class="eyebrow">Selected Work</div><h1>Editing Work</h1><p class="intro">I used to be an editor, below you&#39;ll find a small selection of some of my favorite work.</p></section>
+  <nav class="index wrap"><div class="label">Projects</div><ul id="indexList"></ul></nav>
+  <div id="projects"></div>
+  <section class="pager wrap"><div class="pager-inner">
+    <a href="zarabeauty.html" class="prev"><div class="lbl">Previous</div><div class="nm">Zara Beauty</div></a>
+    <a href="lv.html" class="next"><div class="lbl">Next</div><div class="nm">Louis Vuitton →</div></a>
+  </div></section>
+</main>
+<footer class="wrap"><a class="mail" href="mailto:jacques@jacquesdelconte.com">jacques@jacquesdelconte.com</a><div class="copy">© <span id="year"></span> Jacques del Conte — Executive Producer &amp; Post Production Consultant</div></footer>
+<script src="client.js"></script>
+<script>
+const PROJECTS=[{id:'mlb-play-catch',title:'MLB &quot;PlayBall &mdash; Play Catch&quot;',desc:'Working with Creative Director Dan Shapiro at Anomaly, the pacing and musical scoring of this piece were paramount to its vision. Winner of an AICP award.',credits:[['Edit','Jacques del Conte'],['Director','Zachary Heinzerling'],['Music','Sam Skarstad']],films:[{provider:'vimeo',id:'218445052',label:'PlayBall &mdash; Play Catch',poster:''}],layout:'single'},{id:'tide-man-made-stains',title:'Tide &quot;Man Made Stains&quot;',desc:'Working with Creative Director Daniel Loboton at Saatchi &amp; Saatchi, we crafted this tight little spot for Tide.',credits:[['Edit','Jacques del Conte'],['Creative Director','Daniel Loboton']],films:[{provider:'vimeo',id:'245060143',label:'Man Made Stains',poster:''}],layout:'single'},{id:'johnnie-walker-this-land',title:'Johnnie Walker &mdash; &quot;This Land&quot;',desc:'Directed by Ghost + Cow, I loved editing this music video for a cover rendition of &quot;This Land&quot; by Chicano Batman for Johnnie Walker.',credits:[['Edit','Jacques del Conte'],['Director','Ghost + Cow']],films:[{provider:'vimeo',id:'202635714',label:'This Land',poster:''}],layout:'single'},{id:'crown-royal-generosity',title:'Crown Royal &quot;Generosity&quot;',desc:'For Unreasonable Studios and Crown Royal, I executive produced this campaign from pre-production through post, and edited the films as well.',credits:[['EP of Post','Jacques del Conte'],['Director','Dan Shapiro'],['DP','Adam Uhl'],['Producer/Edit','Jacques del Conte'],['Music','Jeffrey Brodsky']],films:[{provider:'vimeo',id:'194429158',label:'Generosity Film 1',poster:''},{provider:'vimeo',id:'194429053',label:'Generosity Film 2',poster:''}],layout:'multi'},{id:'meals-on-wheels',title:'Meals on Wheels &mdash; Portraits',desc:'Directed by Mark Seliger, it was an honor to craft these portraits for Meals on Wheels.',credits:[['Edit','Jacques del Conte'],['Director','Mark Seliger']],films:[{provider:'vimeo',id:'172637286',label:'Portrait 1',poster:''},{provider:'vimeo',id:'172637288',label:'Portrait 2',poster:''},{provider:'vimeo',id:'172637263',label:'Portrait 3',poster:''},{provider:'vimeo',id:'172637280',label:'Portrait 4',poster:''},{provider:'vimeo',id:'172637854',label:'Portrait 5',poster:''},{provider:'vimeo',id:'172637855',label:'Portrait 6',poster:''}],layout:'multi'},{id:'converse-portraits',title:'Converse &mdash; Portraits',desc:'Working with Mathew Jerret at Anomaly, we crafted these short portraits for Converse.',credits:[['Edit','Jacques del Conte'],['Creative Director','Mathew Jerret']],films:[{provider:'vimeo',id:'171444721',label:'Portrait 1',poster:''},{provider:'vimeo',id:'171444719',label:'Portrait 2',poster:''},{provider:'vimeo',id:'171444723',label:'Portrait 3',poster:''},{provider:'vimeo',id:'171444722',label:'Portrait 4',poster:''},{provider:'vimeo',id:'171444720',label:'Portrait 5',poster:''}],layout:'multi'},{id:'mlb-playball',title:'MLB &quot;PlayBall&quot;',desc:'Sifting through nine days of docu-style footage was time well spent when it resulted in this piece for The Mercadantes.',credits:[['Edit','Jacques del Conte'],['Production','The Mercadantes']],films:[{provider:'vimeo',id:'129971993',label:'PlayBall',poster:''}],layout:'single'}];
+initClientPage(PROJECTS,'Selected Work');
+</script>
+</body></html>
