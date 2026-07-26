@@ -1,0 +1,10 @@
+# Local environment variables (e.g. `vercel env pull .env.local`)
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# OS / editor cruft
+.DS_Store
