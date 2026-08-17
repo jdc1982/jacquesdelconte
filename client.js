@@ -170,7 +170,7 @@ function filmShell(f) {
   // isn't 16:9. Overrides the default 16:9 shell so the whole frame shows with
   // no pillarbox bars and nothing cropped.
   const arStyle = f.ar ? ` style="aspect-ratio:${f.ar}"` : '';
-  return `<div class="video-shell" data-provider="${f.provider}" data-id="${f.id}" data-label="${f.label||''}"${arStyle}>
+  return `<div class="video-shell" data-provider="${f.provider}" data-id="${f.id}" data-hash="${f.hash||''}" data-label="${f.label||''}"${arStyle}>
     <div class="poster empty"></div>
     <div class="play-hint"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
   </div>`;
@@ -254,6 +254,7 @@ function setShellAudio(shell, on) {
   // position so the swap is seamless.
   const provider = shell.dataset.provider;
   const id = shell.dataset.id;
+  const _hash = shell.dataset.hash;
   const isBackground = iframe.src.indexOf('background=1') !== -1;
   const inFs = !!(document.fullscreenElement || document.webkitFullscreenElement) ||
                shell._fsActive || shell.classList.contains('jdc-fs');
@@ -261,7 +262,7 @@ function setShellAudio(shell, on) {
     const t = (typeof shell._resumeAt === 'number' && shell._resumeAt > 0.5) ? shell._resumeAt : 0;
     // Non-background URL: controls hidden but audio honoured. muted=0 + a
     // sticky user gesture on the page means autoplay-with-sound is permitted.
-    const newSrc = `https://player.vimeo.com/video/${id}?autoplay=1&muted=0&loop=1&playsinline=1&controls=0&title=0&byline=0&portrait=0&transparent=0&quality=auto#t=${t}s`;
+    const newSrc = `https://player.vimeo.com/video/${id}?autoplay=1&muted=0&loop=1&playsinline=1&controls=0&title=0&byline=0&portrait=0&transparent=0&quality=auto${_hash?`&h=${_hash}`:''}#t=${t}s`;
     try {
       shell._vp.pause && shell._vp.pause().catch(()=>{});
       shell._vp.unload && shell._vp.unload().catch(()=>{});
@@ -309,7 +310,7 @@ function injectIframe(shell, muted, primary = true) {
   // load muted, then (desktop) raise volume ~1200ms later once the player has
   // initialised — matching the working reference portfolio.
   const src = provider==='vimeo'
-    ? `https://player.vimeo.com/video/${id}?background=1&autoplay=1&muted=1&loop=1&playsinline=1&transparent=0&quality=auto`
+    ? `https://player.vimeo.com/video/${id}?background=1&autoplay=1&muted=1&loop=1&playsinline=1&transparent=0&quality=auto${shell.dataset.hash?`&h=${shell.dataset.hash}`:''}`
     : `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&controls=0&playlist=${id}&rel=0&playsinline=1&enablejsapi=1`;
   const iframe = document.createElement('iframe');
   iframe.src = src;
