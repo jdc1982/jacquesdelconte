@@ -339,7 +339,7 @@ async function createNewClient(){
       const ir=await fetch(`${BASE}/contents/index.html`,{headers:{'Authorization':`token ${TOKEN}`,'Accept':'application/vnd.github.v3+json'}});
       const id=await ir.json();
       let ihtml=decodeURIComponent(escape(atob(id.content.replace(/\n/g,''))));
-      const tile=`      <a class="tile reveal" href="${slug}.html"><img src="${thumb}" alt="${label}"><div class="cap"><span>${label}</span></div></a>\n`;
+      const tile=`      <a class="tile reveal" href="${slug}.html"><div class="tile-frame"><img src="${thumb}" alt="${label}"></div><div class="cap"><span class="idx"></span><span class="nm">${label}</span></div></a>\n`;
       ihtml=ihtml.replace('    </div>\n  </section>\n  <section class="home-foot',tile+'    </div>\n  </section>\n  <section class="home-foot');
       await fetch(`${BASE}/contents/index.html`,{method:'PUT',headers:{'Authorization':`token ${TOKEN}`,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify({message:`Add ${label} to homepage`,content:btoa(unescape(encodeURIComponent(ihtml))),sha:id.sha})});
     }
@@ -455,7 +455,7 @@ async function loadTileFraming(){
     const ir=await fetch(`${BASE}/contents/index.html`,{headers:{'Authorization':`token ${TOKEN}`,'Accept':'application/vnd.github.v3+json'}});
     const id=await ir.json();
     const ihtml=decodeURIComponent(escape(atob(id.content.replace(/\n/g,''))));
-    const re=new RegExp(`<a class="tile reveal" href="${escRe(currentFile)}"[^>]*>\\s*<img\\b([^>]*)>`);
+    const re=new RegExp(`<a class="tile[^"]*" href="${escRe(currentFile)}"[^>]*>\\s*<div class="tile-frame">\\s*<img\\b([^>]*)>`);
     const m=ihtml.match(re);
     if(!m){ showReframe('',50,50,1); return; }
     const attrs=m[1];
@@ -545,12 +545,12 @@ async function applyPageSettings(){
       const styleStr = `--ox:${_frame.fx}%;--oy:${_frame.fy}%;--z:${z}`;
       const newImg = `<img src="${he(thumb)}" alt="${he(label)}" style="${styleStr}">`;
       // Rewrite the <img> inside THIS file's tile (src + framing) in one pass
-      const tileImgRe = new RegExp(`(<a class="tile reveal" href="${escRe(currentFile)}"[^>]*>)\\s*<img\\b[^>]*>`);
+      const tileImgRe = new RegExp(`(<a class="tile[^"]*" href="${escRe(currentFile)}"[^>]*>\\s*<div class="tile-frame">)\\s*<img\\b[^>]*>`);
       if(tileImgRe.test(ihtml)){
         ihtml = ihtml.replace(tileImgRe, (m,p1) => `${p1}${newImg}`);
       } else {
         // tile doesn't exist — add it
-        const tile = `      <a class="tile reveal" href="${currentFile}">${newImg}<div class="cap"><span>${he(label)}</span></div></a>\n`;
+        const tile = `      <a class="tile reveal" href="${currentFile}"><div class="tile-frame">${newImg}</div><div class="cap"><span class="idx"></span><span class="nm">${he(label)}</span></div></a>\n`;
         ihtml = ihtml.replace('    </div>\n  </section>\n  <section class="home-foot', tile+'    </div>\n  </section>\n  <section class="home-foot');
       }
       await fetch(`${BASE}/contents/index.html`,{method:'PUT',headers:{'Authorization':`token ${TOKEN}`,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify({message:`Update ${label} thumbnail`,content:btoa(unescape(encodeURIComponent(ihtml))),sha:id.sha})});
