@@ -152,8 +152,12 @@ header{position:sticky;top:0;z-index:200;background:rgba(var(--bg-rgb),0.86);-we
 .jdc-scrub:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
 .jdc-ctrl.no-progress .jdc-time,
 .jdc-ctrl.no-progress .jdc-scrub { display: none; }
+/* loading after a jump: the time label breathes until playback resumes */
+.jdc-ctrl.is-loading .jdc-cur { animation: jdcLoad 1s ease-in-out infinite; }
+@keyframes jdcLoad { 0%,100% { opacity: 1 } 50% { opacity: .3 } }
 @media (prefers-reduced-motion: reduce) {
   .jdc-fill, .jdc-track { transition: none; }
+  .jdc-ctrl.is-loading .jdc-cur { animation: none; opacity: .5; }
 }
 /* fullscreen: same bar, one step larger */
 .video-shell:fullscreen .jdc-ctrl,

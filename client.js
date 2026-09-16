@@ -20,11 +20,24 @@ function setMuteLabel(shell, soundOn) {
   const b = shell._ctrl && shell._ctrl.querySelector('.jdc-mute');
   if (b) b.textContent = soundOn ? 'Mute' : 'Unmute';
 }
+// Loading state while the player fetches video at a new point.
+function setLoading(shell, on) {
+  clearTimeout(shell._loadTimer);
+  if (shell._ctrl) shell._ctrl.classList.toggle('is-loading', on);
+  if (on) shell._loadTimer = setTimeout(() => setLoading(shell, false), 8000);
+}
 // Called from Vimeo timeupdate (~4x a second). Writes only what changed and
 // moves the bar with a compositor-only transform.
 function paintProgress(shell, secs, dur) {
   const c = shell._ctrl;
   if (!c || !c._fillEl || shell._scrubbing) return;
+  // After a jump the player keeps reporting the old position for a moment.
+  // Hold the bar on the target until a nearby position arrives (max 5s).
+  if (shell._seekTarget != null) {
+    const near = Math.abs((secs || 0) - shell._seekTarget) < 1.5;
+    if (!near && performance.now() - shell._seekAt < 5000) return;
+    shell._seekTarget = null;
+  }
   if (typeof dur === 'number' && dur > 0 && dur !== c._dur) { c._dur = dur; c._durEl.textContent = fmtTime(dur); }
   const d = c._dur || 0;
   const whole = Math.floor(secs || 0);
@@ -53,7 +66,10 @@ function bindScrub(shell, el) {
     const c = shell._ctrl; if (!c || !c._dur) return;
     secs = Math.min(Math.max(0, secs), Math.max(0, c._dur - 0.25));
     shell._resumeAt = secs;
-    if (shell._vp) shell._vp.setCurrentTime(secs).catch(() => {});
+    shell._seekTarget = secs;
+    shell._seekAt = performance.now();
+    setLoading(shell, true);
+    if (shell._vp) shell._vp.setCurrentTime(secs).catch(() => setLoading(shell, false));
     else vimeoPost(shell.querySelector('iframe'), 'setCurrentTime', secs);
   };
   let pending = 0;
@@ -477,13 +493,16 @@ function warmVimeo(shell, iframe) {
         reveal();
         if (!live()) return;
         if (d && typeof d.seconds === 'number') {
-          if (!shell._scrubbing) shell._resumeAt = d.seconds;
+          if (!shell._scrubbing && shell._seekTarget == null) shell._resumeAt = d.seconds;
           shell._duration = d.duration || shell._duration;
           paintProgress(shell, d.seconds, shell._duration);
         }
       });
-      p.on('playing', () => { reveal(); if (live()) setPlayLabel(shell, true); });
+      p.on('playing', () => { reveal(); if (live()) { setPlayLabel(shell, true); setLoading(shell, false); } });
       p.on('play', () => { if (live()) setPlayLabel(shell, true); });
+      p.on('seeked', () => { if (live()) setLoading(shell, false); });
+      p.on('bufferstart', () => { if (live() && shell._seekTarget != null) setLoading(shell, true); });
+      p.on('bufferend', () => { if (live()) setLoading(shell, false); });
       p.on('pause', () => {
         if (!live()) return;
         p.getPaused().then(paused => { if (paused && live()) setPlayLabel(shell, false); }).catch(()=>{});
@@ -502,6 +521,8 @@ function teardownShell(shell) {
   const iframe = shell.querySelector('iframe'); if (!iframe) return;
   clearTimeout(shell._revealTimer);
   clearTimeout(shell._unmuteTimer);
+  shell._seekTarget = null;
+  setLoading(shell, false);
   shell.classList.remove('is-playing');
   if (shell._vp) {
     const vp = shell._vp; shell._vp = null;
