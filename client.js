@@ -106,6 +106,18 @@ function bindScrub(shell, el) {
 }
 
 /* ── Thumbnails ───────────────────────────────────────────── */
+// One request per video id for the life of the page. Desktop and mobile views
+// render the same films, so without this every video was fetched twice.
+const _vimeoMeta = new Map();
+function vimeoMeta(id) {
+  if (!_vimeoMeta.has(id)) {
+    _vimeoMeta.set(id, fetch(`https://vimeo.com/api/v2/video/${id}.json`)
+      .then(r => r.ok ? r.json() : [])
+      .then(d => d[0] || {})
+      .catch(() => ({})));
+  }
+  return _vimeoMeta.get(id);
+}
 async function loadAllThumbnails() {
   const shells = document.querySelectorAll('.video-shell');
   await Promise.allSettled([...shells].map(async shell => {
@@ -115,11 +127,9 @@ async function loadAllThumbnails() {
     if (provider === 'youtube') {
       url = `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
     } else {
-      try {
-        const res  = await fetch(`https://vimeo.com/api/v2/video/${id}.json`);
-        const data = await res.json();
-        url = data[0].thumbnail_large || data[0].thumbnail_medium || '';
-      } catch {}
+      const data = await vimeoMeta(id);
+      url = data.thumbnail_large || data.thumbnail_medium || '';
+      applyNativeAspect(shell, data.width, data.height);
     }
     if (!url) return;
     shell.dataset.thumbUrl = url;
@@ -267,12 +277,32 @@ function buildControls(shell, startMuted) {
   if (hasProgress) bindScrub(shell, ctrl._scrubEl);
 }
 
+/* ── Aspect ratio ─────────────────────────────────────────── */
+// "9/16", "1080/1350" or "1.25" -> height/width as a number, else 0.
+function arValue(ar) {
+  if (!ar) return 0;
+  const m = String(ar).split('/').map(Number);
+  const w = m[0], h = m.length > 1 ? m[1] : 1;
+  return w > 0 && h > 0 ? +(h / w).toFixed(4) : 0;
+}
+// Give a shell the source's own shape when it isn't 16:9, so vertical and
+// square films are shown whole instead of being cropped inside a 16:9 box.
+// An explicit `ar` in PROJECTS always wins over the detected size.
+function applyNativeAspect(shell, w, h) {
+  if (!shell || shell.dataset.arSet || !(w > 0 && h > 0)) return;
+  shell.dataset.arSet = '1';
+  if (Math.abs(w / h - 16 / 9) < 0.03) return;
+  shell.style.aspectRatio = `${w}/${h}`;
+  shell.style.setProperty('--arv', (h / w).toFixed(4));
+}
+
 /* ── Shell HTML ───────────────────────────────────────────── */
 function filmShell(f) {
   // Optional native aspect ratio (e.g. "5/4", "1/1") for videos whose source
   // isn't 16:9. Overrides the default 16:9 shell so the whole frame shows with
   // no pillarbox bars and nothing cropped.
-  const arStyle = f.ar ? ` style="aspect-ratio:${f.ar}"` : '';
+  const arv = arValue(f.ar);
+  const arStyle = arv ? ` style="aspect-ratio:${f.ar};--arv:${arv}" data-ar-set="1"` : '';
   return `<div class="video-shell" data-provider="${f.provider}" data-id="${f.id}" data-hash="${f.hash||''}" data-label="${f.label||''}"${arStyle}>
     <div class="poster empty"></div>
     <div class="play-hint"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
@@ -476,6 +506,10 @@ function warmVimeo(shell, iframe) {
       // Events from a player that has since been swapped out (audio swap) or
       // torn down are ignored, so they cannot flip the labels.
       const live = () => shell._vp === p;
+      if (!shell.dataset.arSet) {
+        p.ready().then(() => Promise.all([p.getVideoWidth(), p.getVideoHeight()]))
+          .then(([w, h]) => applyNativeAspect(shell, w, h)).catch(()=>{});
+      }
       p.ready().then(() => p.getDuration()).then(d => {
         if (!live() || !d) return;
         shell._duration = d;
@@ -768,6 +802,12 @@ function renderDesktop(projects, indexLabel) {
   }, { threshold: [0, 0.25, 0.5, 0.75, 1.0] });
 
   allShells.forEach(s => singleObs.observe(s));
+  el.addEventListener('click', e => {
+    const shell = e.target.closest('.video-shell');
+    if (!shell || shell.closest('.films-hscroll') || shell.querySelector('iframe')) return;
+    markUserActivated();
+    injectIframe(shell, true);
+  });
   onTeardown(() => singleObs.disconnect());
 
   loadAllThumbnails();
@@ -801,14 +841,25 @@ function renderMobile(projects) {
 
   loadAllThumbnails();
 
+  // The unit taking up the most of the visible area. At the end of the scroll
+  // range the last unit wins even if it cannot reach the top of the pane.
   function getActiveUnit(container) {
     const units  = [...container.querySelectorAll('.m-video-unit')];
-    const scroll = container.scrollTop;
-    const height = container.clientHeight;
-    return units.find(u => {
-      const top = u.offsetTop, bot = top + u.offsetHeight;
-      return top <= scroll + height*0.6 && bot >= scroll + height*0.4;
-    }) || units[0];
+    const top    = container.scrollTop;
+    const bottom = top + container.clientHeight;
+    if (units.length > 1 && bottom >= container.scrollHeight - 2 && top > 2) return units[units.length - 1];
+    let best = units[0], bestSeen = -1;
+    units.forEach(u => {
+      const uTop = unitTop(container, u);
+      const seen = Math.min(bottom, uTop + u.offsetHeight) - Math.max(top, uTop);
+      if (seen > bestSeen) { bestSeen = seen; best = u; }
+    });
+    return best;
+  }
+  // Position of a unit inside the scrolling pane. offsetTop is measured from
+  // the fixed story wrapper, so it includes the title block above the pane.
+  function unitTop(container, u) {
+    return u.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
   }
 
   function activateUnit(container, unit) {
@@ -824,11 +875,32 @@ function renderMobile(projects) {
     const container = document.getElementById(`vunits-${pi}`);
     if (!container) return;
     let vTimer = null;
+    let pinned = null, pinnedAt = 0;   // unit chosen by a tap, kept through its scroll
     container.addEventListener('scroll', () => {
-      container.querySelectorAll('.video-shell').forEach(teardownShell);
+      const keep = pinned && performance.now() - pinnedAt < 1200 ? pinned : null;
+      container.querySelectorAll('.video-shell').forEach(s => {
+        if (!keep || !keep.contains(s)) teardownShell(s);
+      });
       clearTimeout(vTimer);
-      vTimer = setTimeout(() => activateUnit(container, getActiveUnit(container)), 120);
+      vTimer = setTimeout(() => {
+        const unit = keep && performance.now() - pinnedAt < 1200 ? keep : getActiveUnit(container);
+        pinned = null;
+        activateUnit(container, unit);
+      }, 120);
     }, { passive: true });
+    // Tap a film that is not playing: start it and bring it into view.
+    container.addEventListener('click', e => {
+      if (e.target.closest('.jdc-ctrl')) return;
+      const shell = e.target.closest('.video-shell');
+      if (!shell || shell.querySelector('iframe')) return;
+      const unit = shell.closest('.m-video-unit');
+      activateUnit(container, unit);
+      const target = Math.min(unitTop(container, unit), container.scrollHeight - container.clientHeight);
+      if (Math.abs(container.scrollTop - target) > 2) {
+        pinned = unit; pinnedAt = performance.now();
+        container.scrollTo({ top: target, behavior: 'smooth' });
+      }
+    });
   });
 
   let activeIdx = 0;

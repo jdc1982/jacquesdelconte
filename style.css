@@ -169,17 +169,15 @@ header{position:sticky;top:0;z-index:200;background:rgba(var(--bg-rgb),0.86);-we
   .jdc-btn { padding: 10px 0; }
 }
 
-/* Mobile: force iframe to fill shell, no black bars */
+/* Mobile: the player fills its shell exactly. The shell carries the film's
+   own shape (see applyNativeAspect in client.js), so nothing is cropped.
+   The old rule sized the frame from the viewport height (177.78vh), which made
+   it several times wider than the phone and pushed non-16:9 films off-centre. */
 @media(max-width:768px),(orientation:landscape) and (max-height:540px){
   .m-video-unit .video-shell{overflow:hidden}
   .m-video-unit .video-shell iframe{
-    position:absolute;
-    top:50%;left:50%;
-    width:177.78vh;  /* 16/9 of viewport height */
-    min-width:100%;
-    height:56.25vw;  /* 9/16 of viewport width */
-    min-height:100%;
-    transform:translate(-50%,-50%);
+    position:absolute;inset:0;
+    width:100%;height:100%;
     border:0;
   }
 }
@@ -426,6 +424,17 @@ body.jdc-fs-lock{overflow:hidden !important;}
 @media(max-width:768px),(orientation:landscape) and (max-height:540px){
   .m-video-unit .video-shell[style*="aspect-ratio"]{
     width:100%;
+  }
+}
+/* Portrait phones: a vertical or square film fits the pane above its control
+   bar (48px), centred, so one film reads as one screen. --arv is height/width. */
+@media(max-width:768px) and (orientation:portrait){
+  .m-video-units{container-type:size}
+  .m-video-unit .video-shell[style*="aspect-ratio"]{
+    width:auto;max-width:100%;
+    align-self:center;margin-inline:auto;
+    height:min(calc(100vw * var(--arv, .5625)), 62vh);
+    height:min(calc(100cqw * var(--arv, .5625)), calc(100cqh - 48px));
   }
 }
 
