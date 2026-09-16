@@ -4,9 +4,10 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0C0C0B">
 <link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<title>Nars — Jacques del Conte</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>NARS — Jacques del Conte</title>
+<link rel="preload" href="/fonts/archivo-var-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/ibmplexmono-400-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/ebgaramond-var-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preconnect" href="https://player.vimeo.com" crossorigin><link rel="preconnect" href="https://i.vimeocdn.com" crossorigin><link rel="preconnect" href="https://f.vimeocdn.com" crossorigin><link rel="dns-prefetch" href="https://vod-progressive.akamaized.net"><link rel="stylesheet" href="style.css">
 </head>
 <body class="client-page">
@@ -15,7 +16,7 @@
 <div class="m-story-wrap" id="mStory"></div>
 <div class="m-nav-hint" id="mNavHint"><span>Swipe</span><span class="arr">→</span></div>
 <main id="projects-desktop">
-  <section class="client-head wrap"><div class="eyebrow">Post Production</div><h1>Nars</h1></section>
+  <section class="client-head wrap"><div class="eyebrow">Post Production</div><h1>NARS</h1></section>
   <nav class="index wrap"><div class="label">Projects</div><ul id="indexList"></ul></nav>
   <div id="projects"></div>
   <section class="pager wrap"><div class="pager-inner">
@@ -26,7 +27,7 @@
 <footer class="wrap"><a class="mail" href="mailto:jacques@jacquesdelconte.com">jacques@jacquesdelconte.com</a><div class="copy">© <span id="year"></span> Jacques del Conte — Executive Producer &amp; Post Production Consultant</div></footer>
 <script src="client.js"></script>
 <script>
-const PROJECTS=[{id:'nars-orgasm',title:'Nars Orgasm',credits:[['EP of Post','Jacques del Conte'],['Director','Damien Krisl'],['Edit','Jose Cota'],['Color','Tim Masick'],['VFX','Nightshift'],['Music','The Chromatics']],films:[{provider:'vimeo',id:'330183644',label:'Nars Orgasm',poster:''}],layout:'single',desc:'Directed by Damien Krisl, this NARS campaign proved too explicit for the majority of its distributors. Music by Chromatics.'},{id:'nars-no-rules',title:'NARS &quot;No Rules. Just Lips.&quot;',credits:[['EP of Post','Jacques del Conte'],['Featuring','Sora Choi'],['Director','Fabien Baron'],['DP','Stuart Dryburgh'],['Edit','Graham Patterson'],['Color','Tim Masick'],['VFX','Nightshift'],['Music','Stelios Phili'],['Styling','Ludivine Poiblanc']],films:[{provider:'vimeo',id:'356951983',label:'No Rules. Just Lips.',poster:''}],layout:'single'},{id:'nars-audacious',title:'Nars Audacious Fragrance',credits:[['EP of Post','Jacques del Conte'],['Featuring','Iriska Kravchenko'],['Director','Fabien Baron'],['DP','Andre Chemetoff'],['Edit','Will Town'],['Color','Tim Masick'],['VFX','Modern Post'],['Music','Ben Chatwin'],['Styling','Ludivine Poiblanc']],films:[{provider:'vimeo',id:'362374437',label:'Audacious Fragrance',poster:''}],layout:'single',desc:'One of my early projects with Fabien Baron — such an incredible opportunity to craft something so beautiful.'},{id:'nars-product-films',title:'NARS Product Films',credits:[['EP of Post','Jacques del Conte']],heroFilm:{provider:'vimeo',id:'638836502',label:'NARS Product Films',poster:''},films:[{provider:'vimeo',id:'802395379',label:'Product Film 1',poster:''},{provider:'vimeo',id:'638835539',label:'Product Film 2',poster:''},{provider:'vimeo',id:'638835093',label:'Product Film 3',poster:''}],layout:'triple',desc:'A series of CGI-only films crafted for NARS. For these it was a unique opportunity where I also art directed and edited the films, as well as producing.'}];
+const PROJECTS=[{id:'nars-orgasm',title:'NARS Orgasm',credits:[['EP of Post','Jacques del Conte'],['Director','Damien Krisl'],['Edit','Jose Cota'],['Color','Tim Masick'],['VFX','Nightshift'],['Music','The Chromatics']],films:[{provider:'vimeo',id:'330183644',label:'NARS Orgasm',poster:''}],layout:'single',desc:'Directed by Damien Krisl, this NARS campaign proved too explicit for the majority of its distributors. Music by Chromatics.'},{id:'nars-no-rules',title:'NARS &quot;No Rules. Just Lips.&quot;',credits:[['EP of Post','Jacques del Conte'],['Featuring','Sora Choi'],['Director','Fabien Baron'],['DP','Stuart Dryburgh'],['Edit','Graham Patterson'],['Color','Tim Masick'],['VFX','Nightshift'],['Music','Stelios Phili'],['Styling','Ludivine Poiblanc']],films:[{provider:'vimeo',id:'356951983',label:'No Rules. Just Lips.',poster:''}],layout:'single'},{id:'nars-audacious',title:'NARS Audacious Fragrance',credits:[['EP of Post','Jacques del Conte'],['Featuring','Iriska Kravchenko'],['Director','Fabien Baron'],['DP','Andre Chemetoff'],['Edit','Will Town'],['Color','Tim Masick'],['VFX','Modern Post'],['Music','Ben Chatwin'],['Styling','Ludivine Poiblanc']],films:[{provider:'vimeo',id:'362374437',label:'Audacious Fragrance',poster:''}],layout:'single',desc:'One of my early projects with Fabien Baron — such an incredible opportunity to craft something so beautiful.'},{id:'nars-product-films',title:'NARS Product Films',credits:[['EP of Post','Jacques del Conte']],heroFilm:{provider:'vimeo',id:'638836502',label:'NARS Product Films',poster:''},films:[{provider:'vimeo',id:'802395379',label:'Product Film 1',poster:''},{provider:'vimeo',id:'638835539',label:'Product Film 2',poster:''},{provider:'vimeo',id:'638835093',label:'Product Film 3',poster:''}],layout:'triple',desc:'A series of CGI-only films crafted for NARS. For these it was a unique opportunity where I also art directed and edited the films, as well as producing.'}];
 initClientPage(PROJECTS,'Projects');
 </script>
 </body></html>
