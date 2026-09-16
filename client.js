@@ -2,13 +2,92 @@
    JACQUES DEL CONTE — client page engine
    ============================================================ */
 
-const playSVG   = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
-const pauseSVG  = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
-const muteSVG   = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 12A4.5 4.5 0 0014 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.796 8.796 0 0021 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06A8.99 8.99 0 0017.73 19l1.73 1.73 1.27-1.27L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>`;
-const unmuteSVG = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0014 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77 0-4.28-2.99-7.86-7-8.77z"/></svg>`;
-const fsSVG     = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>`;
-const rw15SVG   = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6h-2c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/><text x="7.5" y="15.5" font-size="5.5" font-family="sans-serif" font-weight="700" fill="currentColor">15</text></svg>`;
-const ff15SVG   = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.01 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"/><text x="7.5" y="15.5" font-size="5.5" font-family="sans-serif" font-weight="700" fill="currentColor">15</text></svg>`;
+const fsLineSVG = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="square"><path d="M1.5 5.5v-4h4M10.5 1.5h4v4M14.5 10.5v4h-4M5.5 14.5h-4v-4"/></svg>`;
+
+/* ── Transport state (text labels, time, progress) ────────── */
+function fmtTime(s) {
+  s = Math.max(0, Math.floor(s || 0));
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = String(s % 60).padStart(2, '0');
+  return h ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
+}
+function setPlayLabel(shell, playing) {
+  shell._playing = playing;
+  shell.classList.toggle('is-paused', !playing);
+  const b = shell._ctrl && shell._ctrl.querySelector('.jdc-play');
+  if (b) b.textContent = playing ? 'Pause' : 'Play';
+}
+function setMuteLabel(shell, soundOn) {
+  const b = shell._ctrl && shell._ctrl.querySelector('.jdc-mute');
+  if (b) b.textContent = soundOn ? 'Mute' : 'Unmute';
+}
+// Called from Vimeo timeupdate (~4x a second). Writes only what changed and
+// moves the bar with a compositor-only transform.
+function paintProgress(shell, secs, dur) {
+  const c = shell._ctrl;
+  if (!c || !c._fillEl || shell._scrubbing) return;
+  if (typeof dur === 'number' && dur > 0 && dur !== c._dur) { c._dur = dur; c._durEl.textContent = fmtTime(dur); }
+  const d = c._dur || 0;
+  const whole = Math.floor(secs || 0);
+  if (whole !== c._whole) { c._whole = whole; c._curEl.textContent = fmtTime(whole); }
+  const r = d ? Math.min(1, Math.max(0, (secs || 0) / d)) : 0;
+  // No easing when the bar jumps backwards (loop restart, seek back).
+  c._fillEl.style.transition = r < c._r ? 'none' : '';
+  c._fillEl.style.transform = `scaleX(${r})`;
+  c._r = r;
+  c._scrubEl.setAttribute('aria-valuenow', String(Math.round(r * 100)));
+  c._scrubEl.setAttribute('aria-valuetext', `${fmtTime(whole)} of ${fmtTime(d)}`);
+}
+function bindScrub(shell, el) {
+  const ratioAt = x => {
+    const r = el.getBoundingClientRect();
+    return r.width ? Math.min(1, Math.max(0, (x - r.left) / r.width)) : 0;
+  };
+  const preview = r => {
+    const c = shell._ctrl; if (!c || !c._dur) return;
+    c._fillEl.style.transition = 'none';
+    c._fillEl.style.transform = `scaleX(${r})`;
+    c._curEl.textContent = fmtTime(r * c._dur);
+    c._whole = -1; c._r = r;
+  };
+  const seekTo = secs => {
+    const c = shell._ctrl; if (!c || !c._dur) return;
+    secs = Math.min(Math.max(0, secs), Math.max(0, c._dur - 0.25));
+    shell._resumeAt = secs;
+    if (shell._vp) shell._vp.setCurrentTime(secs).catch(() => {});
+    else vimeoPost(shell.querySelector('iframe'), 'setCurrentTime', secs);
+  };
+  let pending = 0;
+  el.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    e.preventDefault(); e.stopPropagation();
+    if (!shell._ctrl || !shell._ctrl._dur) return;
+    shell._scrubbing = true;
+    el.classList.add('is-scrubbing');
+    try { el.setPointerCapture(e.pointerId); } catch (_) {}
+    pending = ratioAt(e.clientX); preview(pending);
+  });
+  el.addEventListener('pointermove', e => {
+    if (!shell._scrubbing) return;
+    pending = ratioAt(e.clientX); preview(pending);
+  });
+  const stop = seek => {
+    if (!shell._scrubbing) return;
+    shell._scrubbing = false;
+    el.classList.remove('is-scrubbing');
+    if (seek) seekTo(pending * shell._ctrl._dur);
+  };
+  el.addEventListener('pointerup', () => stop(true));
+  el.addEventListener('pointercancel', () => stop(false));
+  el.addEventListener('keydown', e => {
+    const c = shell._ctrl; if (!c || !c._dur) return;
+    const cur = shell._resumeAt || 0;
+    const t = { ArrowRight: cur + 5, ArrowLeft: cur - 5, Home: 0, End: c._dur }[e.key];
+    if (t === undefined) return;
+    e.preventDefault(); e.stopPropagation();
+    seekTo(t);
+    preview(Math.min(1, Math.max(0, t / c._dur)));
+  });
+}
 
 /* ── Thumbnails ───────────────────────────────────────────── */
 async function loadAllThumbnails() {
@@ -116,25 +195,40 @@ function buildControls(shell, startMuted) {
   ctrlTarget.querySelectorAll('.jdc-ctrl').forEach(el => el.remove());
   const ctrl = document.createElement('div');
   ctrl.className = 'jdc-ctrl';
+  // Time and scrubbing come from the Vimeo player API; other providers get
+  // the buttons only.
+  const hasProgress = shell.dataset.provider === 'vimeo';
+  if (!hasProgress) ctrl.classList.add('no-progress');
   ctrl.innerHTML = `
-    <button class="jdc-btn" data-action="rw">${rw15SVG}</button>
-    <button class="jdc-btn jdc-play" data-action="play">${pauseSVG}</button>
-    <button class="jdc-btn" data-action="ff">${ff15SVG}</button>
-    <button class="jdc-btn" data-action="fs">${fsSVG}</button>
-    <button class="jdc-btn jdc-mute" data-action="mute">${startMuted ? muteSVG : unmuteSVG}</button>`;
+    <button type="button" class="jdc-btn jdc-txt jdc-play" data-action="play">Pause</button>
+    <button type="button" class="jdc-btn jdc-txt jdc-mute" data-action="mute">${startMuted ? 'Unmute' : 'Mute'}</button>
+    <span class="jdc-time" aria-hidden="true"><span class="jdc-cur">0:00</span><span class="jdc-dur">0:00</span></span>
+    <div class="jdc-scrub" role="slider" tabindex="0" aria-label="Seek" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="jdc-track"><div class="jdc-fill"></div></div></div>
+    <button type="button" class="jdc-btn jdc-fsbtn" data-action="fs" aria-label="Fullscreen">${fsLineSVG}</button>`;
   ctrlTarget.appendChild(ctrl);
+  shell._ctrl = ctrl;
+  ctrl._curEl = ctrl.querySelector('.jdc-cur');
+  ctrl._durEl = ctrl.querySelector('.jdc-dur');
+  ctrl._fillEl = ctrl.querySelector('.jdc-fill');
+  ctrl._scrubEl = ctrl.querySelector('.jdc-scrub');
+  ctrl._whole = -1; ctrl._r = 0; ctrl._dur = 0;
   shell._muted = !!startMuted;
-  let playing = true;
+  shell._scrubbing = false;
+  setPlayLabel(shell, true);
+  if (shell._duration) paintProgress(shell, shell._resumeAt || 0, shell._duration);
+  // Presses on the bar must not start the carousel's drag-to-scroll.
+  ctrl.addEventListener('mousedown', e => e.stopPropagation());
   ctrl.addEventListener('click', e => {
     e.stopPropagation();
     const btn = e.target.closest('[data-action]'); if (!btn) return;
     const iframe = shell.querySelector('iframe'); if (!iframe) return;
     switch (btn.dataset.action) {
-      case 'play':
-        playing ? vimeoPost(iframe,'pause') : vimeoPost(iframe,'play');
-        playing = !playing; btn.innerHTML = playing ? pauseSVG : playSVG; break;
-      case 'rw': shell._seek=-15; vimeoPost(iframe,'getCurrentTime'); break;
-      case 'ff': shell._seek= 15; vimeoPost(iframe,'getCurrentTime'); break;
+      case 'play': {
+        const next = !shell._playing;
+        vimeoPost(iframe, next ? 'play' : 'pause');
+        setPlayLabel(shell, next);
+        break;
+      }
       case 'fs':
         shell._fsActive = true;
         toggleFullscreen(shell);
@@ -144,25 +238,8 @@ function buildControls(shell, startMuted) {
         break;
     }
   });
+  if (hasProgress) bindScrub(shell, ctrl._scrubEl);
 }
-
-// ── Single global listener for Vimeo getCurrentTime replies (for ±15s seek) ──
-// One listener for the whole app, not one per shell (which leaked across SPA
-// navigations). Matches the message to its shell via the iframe's contentWindow.
-function handleSeekMessage(e) {
-  let d; try { d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch { return; }
-  if (!d || d.method !== 'getCurrentTime') return;
-  const shells = document.querySelectorAll('.video-shell');
-  for (const shell of shells) {
-    const iframe = shell.querySelector('iframe');
-    if (iframe && iframe.contentWindow === e.source && shell._seek !== undefined) {
-      vimeoPost(iframe, 'setCurrentTime', Math.max(0, (d.value || 0) + shell._seek));
-      delete shell._seek;
-      return;
-    }
-  }
-}
-window.addEventListener('message', handleSeekMessage);
 
 /* ── Shell HTML ───────────────────────────────────────────── */
 function filmShell(f) {
@@ -241,8 +318,7 @@ function setShellAudio(shell, on) {
       vimeoPost(iframe, 'setVolume', on ? 1 : 0);
       vimeoPost(iframe, 'setMuted', !on);
     }
-    const btn0 = shell.querySelector('.jdc-mute');
-    if (btn0) btn0.innerHTML = on ? unmuteSVG : muteSVG;
+    setMuteLabel(shell, on);
     return;
   }
 
@@ -263,11 +339,13 @@ function setShellAudio(shell, on) {
     // Non-background URL: controls hidden but audio honoured. muted=0 + a
     // sticky user gesture on the page means autoplay-with-sound is permitted.
     const newSrc = `https://player.vimeo.com/video/${id}?autoplay=1&muted=0&loop=1&playsinline=1&controls=0&title=0&byline=0&portrait=0&transparent=0&quality=auto${_hash?`&h=${_hash}`:''}#t=${t}s`;
-    try {
-      shell._vp.pause && shell._vp.pause().catch(()=>{});
-      shell._vp.unload && shell._vp.unload().catch(()=>{});
-    } catch(_){}
+    // Detach first so the old player's pause event is ignored by the labels.
+    const oldVp = shell._vp;
     shell._vp = null;
+    try {
+      oldVp.pause && oldVp.pause().catch(()=>{});
+      oldVp.unload && oldVp.unload().catch(()=>{});
+    } catch(_){}
     iframe.src = newSrc;
     warmVimeo(shell, iframe);
     if (window._jdcAudioDebug) console.log('[audio] swapped iframe to non-background at t=', t);
@@ -282,8 +360,7 @@ function setShellAudio(shell, on) {
     shell._vp.setMuted(true).catch(() => {});
     if (window._jdcAudioDebug) console.log('[audio] set muted');
   }
-  const btn = shell.querySelector('.jdc-mute');
-  if (btn) btn.innerHTML = on ? unmuteSVG : muteSVG;
+  setMuteLabel(shell, on);
 }
 
 function injectIframe(shell, muted, primary = true) {
@@ -364,8 +441,15 @@ function warmVimeo(shell, iframe) {
   const make = () => {
     if (!window.Vimeo || shell._vp) return;
     try {
-      shell._vp = new window.Vimeo.Player(iframe);
-      shell._vp.ready().catch(()=>{});
+      const p = shell._vp = new window.Vimeo.Player(iframe);
+      // Events from a player that has since been swapped out (audio swap) or
+      // torn down are ignored, so they cannot flip the labels.
+      const live = () => shell._vp === p;
+      p.ready().then(() => p.getDuration()).then(d => {
+        if (!live() || !d) return;
+        shell._duration = d;
+        paintProgress(shell, shell._resumeAt || 0, d);
+      }).catch(()=>{});
       // Reveal once real frames are rendering (cleaner than showing the
       // player immediately and watching it flash a still then go black).
       const reveal = () => {
@@ -374,14 +458,18 @@ function warmVimeo(shell, iframe) {
       };
       // Remember playback position so we can resume where the viewer left off
       // when they scroll away and come back. timeupdate carries seconds/duration.
-      shell._vp.on('timeupdate', d => {
+      p.on('timeupdate', d => {
         reveal();
+        if (!live()) return;
         if (d && typeof d.seconds === 'number') {
-          shell._resumeAt = d.seconds;
+          if (!shell._scrubbing) shell._resumeAt = d.seconds;
           shell._duration = d.duration || shell._duration;
+          paintProgress(shell, d.seconds, shell._duration);
         }
       });
-      shell._vp.on('playing', reveal);
+      p.on('playing', reveal);
+      p.on('play', () => { if (live()) setPlayLabel(shell, true); });
+      p.on('pause', () => { if (live()) setPlayLabel(shell, false); });
     } catch (_) {}
   };
   if (window.Vimeo) make();
@@ -397,7 +485,7 @@ function teardownShell(shell) {
   clearTimeout(shell._revealTimer);
   clearTimeout(shell._unmuteTimer);
   shell.classList.remove('is-playing');
-  if (shell._vp) { try { shell._vp.pause && shell._vp.pause(); shell._vp.unload && shell._vp.unload(); } catch (_) {} shell._vp = null; }
+  if (shell._vp) { const vp = shell._vp; shell._vp = null; try { vp.pause && vp.pause(); vp.unload && vp.unload(); } catch (_) {} }
   iframe.src = '';
   const url = shell.dataset.thumbUrl || '';
   const ps  = url ? `style="background-image:url('${url}');background-size:cover;background-position:center"` : '';

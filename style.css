@@ -102,45 +102,67 @@ header{position:sticky;top:0;z-index:200;background:rgba(var(--bg-rgb),0.86);-we
 /* hide hint once iframe is loaded */
 .video-shell iframe ~ .play-hint { display: none; }
 
-/* custom controls pill */
+/* transport bar: text controls on a bottom scrim */
 .jdc-ctrl {
-  position: absolute;
-  bottom: 16px; left: 50%;
-  transform: translateX(-50%) translateY(8px);
-  display: flex; align-items: center; gap: 2px;
-  background: rgba(var(--scrim-rgb),0.72); backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.14);
-  border-radius: 40px; padding: 6px 10px;
-  opacity: 0; transition: opacity .35s, transform .35s;
-  z-index: 10; pointer-events: all;
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  padding: 56px clamp(16px, 3vw, 32px) 12px;
+  background: linear-gradient(to top, rgba(var(--scrim-rgb),0.7), rgba(var(--scrim-rgb),0));
+  text-shadow: 0 1px 2px rgba(var(--scrim-rgb),0.6);
+  font-family: var(--mono); font-size: 11px; line-height: 1; letter-spacing: .02em;
+  color: var(--ink);
+  opacity: 0; transition: opacity .35s var(--ease);
   white-space: nowrap;
 }
-/* show on hover (desktop) */
-.video-shell:hover .jdc-ctrl { opacity: 1; transform: translateX(-50%) translateY(0); }
-/* always show on mobile */
-@media(max-width:768px),(orientation:landscape) and (max-height:540px){
-  .jdc-ctrl { opacity: 1 !important; transform: translateX(-50%) translateY(0) !important; }
-}
+/* show on hover, keyboard focus, or while paused */
+.video-shell:hover .jdc-ctrl,
+.video-shell.is-paused .jdc-ctrl,
+.jdc-ctrl:focus-within { opacity: 1; }
 
 .jdc-btn {
-  background: none; border: none; color: rgba(255,255,255,0.85);
-  cursor: pointer; padding: 6px 8px; border-radius: 6px;
-  display: flex; align-items: center; justify-content: center;
-  transition: color .2s, background .2s;
-  line-height: 1;
+  background: none; border: 0; padding: 6px 0; margin: 0;
+  font: inherit; letter-spacing: inherit; color: inherit;
+  cursor: pointer; opacity: .82; transition: opacity .2s;
+  display: flex; align-items: center;
 }
-.jdc-btn:hover { color: #fff; background: rgba(255,255,255,0.12); }
-.jdc-btn svg { width: 17px; height: 17px; display: block; }
-.jdc-btn svg text { font-size: 5.5px; font-family: var(--sans); font-weight: 700; }
+.jdc-btn:hover { opacity: 1; }
+/* fixed width so Play/Pause and Mute/Unmute never shift the row */
+.jdc-txt { min-width: 6ch; justify-content: flex-start; }
+.jdc-fsbtn svg { width: 14px; height: 14px; display: block; }
 
-/* separator between ff and fs */
-.jdc-btn[data-action="fs"] { border-left: 1px solid rgba(255,255,255,0.15); margin-left: 4px; padding-left: 10px; }
+.jdc-time { display: flex; gap: 10px; opacity: .82; font-variant-numeric: tabular-nums; }
 
-/* mobile: slightly larger tap targets */
+.jdc-scrub {
+  flex: 0 1 360px; min-width: 80px; height: 22px;
+  display: flex; align-items: center;
+  cursor: pointer; touch-action: none;
+}
+.jdc-track {
+  position: relative; width: 100%; height: 4px; overflow: hidden;
+  background: rgba(var(--ink-rgb),0.26);
+  transform: scaleY(.5); transition: transform .2s var(--ease);
+}
+.jdc-scrub:hover .jdc-track,
+.jdc-scrub.is-scrubbing .jdc-track { transform: none; }
+.jdc-fill {
+  position: absolute; inset: 0; background: var(--ink);
+  transform: scaleX(0); transform-origin: left center;
+  transition: transform .25s linear; will-change: transform;
+}
+.jdc-scrub:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+.jdc-ctrl.no-progress .jdc-time,
+.jdc-ctrl.no-progress .jdc-scrub { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .jdc-fill, .jdc-track { transition: none; }
+}
+/* fullscreen: same bar, one step larger */
+.video-shell:fullscreen .jdc-ctrl,
+.video-shell:-webkit-full-screen .jdc-ctrl { font-size: 13px; padding-bottom: 20px; }
+
+/* narrow players: tighter row */
 @media(max-width:768px),(orientation:landscape) and (max-height:540px){
-  .jdc-ctrl { padding: 8px 12px; gap: 4px; bottom: 12px; }
-  .jdc-btn { padding: 8px 10px; }
-  .jdc-btn svg { width: 20px; height: 20px; }
+  .jdc-ctrl { opacity: 1; gap: 12px; }
+  .jdc-btn { padding: 10px 0; }
 }
 
 /* Mobile: force iframe to fill shell, no black bars */
@@ -249,29 +271,19 @@ header{position:sticky;top:0;z-index:200;background:rgba(var(--bg-rgb),0.86);-we
 
 @media(max-width:768px),(orientation:landscape) and (max-height:540px){
   .m-video-unit .jdc-ctrl{
-    position:static !important;
-    left:auto !important;
-    bottom:auto !important;
-    transform:none !important;
-    opacity:1 !important;
+    position:static;
+    opacity:1;
     width:100%;
     box-sizing:border-box;
-    border-radius:0;
-    border:none;
     border-top:1px solid rgba(var(--ink-rgb),0.14);
     background:var(--surface);
-    display:flex !important;
-    justify-content:center !important;
-    align-items:center;
-    padding:9px 12px;
-    gap:3px;
-    backdrop-filter:none;
-    white-space:nowrap;
+    justify-content:flex-start;
+    padding:6px 14px;
+    gap:14px;
   }
-  .m-video-unit .jdc-btn{padding:8px 11px;color:var(--ink);border-radius:6px}
-  .m-video-unit .jdc-btn:active{background:rgba(var(--ink-rgb),0.10)}
-  .m-video-unit .jdc-btn svg{width:16px;height:16px}
-  .m-video-unit .jdc-btn[data-action="fs"]{border-left:1px solid rgba(var(--ink-rgb),0.18);margin-left:3px;padding-left:12px}
+  .m-video-unit .jdc-ctrl{text-shadow:none}
+  .m-video-unit .jdc-scrub{flex:1 1 auto}
+  .m-video-unit .jdc-fsbtn svg{width:16px;height:16px}
 }
 /* ── Featuring credit ─────────────────────────────────────── */
 .p-featuring {
