@@ -224,9 +224,19 @@ function buildControls(shell, startMuted) {
     const iframe = shell.querySelector('iframe'); if (!iframe) return;
     switch (btn.dataset.action) {
       case 'play': {
-        const next = !shell._playing;
-        vimeoPost(iframe, next ? 'play' : 'pause');
-        setPlayLabel(shell, next);
+        // Ask the player whether it is paused and do the opposite, so one
+        // click is always right even if the label were ever out of date.
+        const act = paused => {
+          const f = shell.querySelector('iframe'); if (!f) return;
+          vimeoPost(f, paused ? 'play' : 'pause');
+          setPlayLabel(shell, paused);
+        };
+        const vp = shell._vp;
+        if (!vp || !vp.getPaused) { act(!shell._playing); break; }
+        let done = false;
+        const once = paused => { if (done) return; done = true; clearTimeout(timer); act(paused); };
+        const timer = setTimeout(() => once(!shell._playing), 400);
+        vp.getPaused().then(once).catch(() => once(!shell._playing));
         break;
       }
       case 'fs':
@@ -339,15 +349,20 @@ function setShellAudio(shell, on) {
     // Non-background URL: controls hidden but audio honoured. muted=0 + a
     // sticky user gesture on the page means autoplay-with-sound is permitted.
     const newSrc = `https://player.vimeo.com/video/${id}?autoplay=1&muted=0&loop=1&playsinline=1&controls=0&title=0&byline=0&portrait=0&transparent=0&quality=auto${_hash?`&h=${_hash}`:''}#t=${t}s`;
-    // Detach first so the old player's pause event is ignored by the labels.
+    // Load the unmuted copy in a NEW iframe element. The Vimeo library keeps
+    // one player object per iframe element, so reusing the element (changing
+    // src) returned the old object: its late 'pause' flipped the label to Play,
+    // and the new document was never subscribed to timeupdate/play/pause.
     const oldVp = shell._vp;
     shell._vp = null;
-    try {
-      oldVp.pause && oldVp.pause().catch(()=>{});
-      oldVp.unload && oldVp.unload().catch(()=>{});
-    } catch(_){}
-    iframe.src = newSrc;
-    warmVimeo(shell, iframe);
+    const fresh = document.createElement('iframe');
+    fresh.src = newSrc;
+    fresh.allow = iframe.allow;
+    fresh.allowFullscreen = true;
+    iframe.replaceWith(fresh);  // removing the old frame stops the muted copy
+    // Old frame is already detached, so destroy() only drops its listeners.
+    try { oldVp.destroy && oldVp.destroy().catch(()=>{}); } catch(_){}
+    warmVimeo(shell, fresh);
     if (window._jdcAudioDebug) console.log('[audio] swapped iframe to non-background at t=', t);
   } else if (on && shell._vp) {
     // Already on non-background iframe — API calls work normally here.
@@ -467,9 +482,12 @@ function warmVimeo(shell, iframe) {
           paintProgress(shell, d.seconds, shell._duration);
         }
       });
-      p.on('playing', reveal);
+      p.on('playing', () => { reveal(); if (live()) setPlayLabel(shell, true); });
       p.on('play', () => { if (live()) setPlayLabel(shell, true); });
-      p.on('pause', () => { if (live()) setPlayLabel(shell, false); });
+      p.on('pause', () => {
+        if (!live()) return;
+        p.getPaused().then(paused => { if (paused && live()) setPlayLabel(shell, false); }).catch(()=>{});
+      });
     } catch (_) {}
   };
   if (window.Vimeo) make();
@@ -485,7 +503,11 @@ function teardownShell(shell) {
   clearTimeout(shell._revealTimer);
   clearTimeout(shell._unmuteTimer);
   shell.classList.remove('is-playing');
-  if (shell._vp) { const vp = shell._vp; shell._vp = null; try { vp.pause && vp.pause(); vp.unload && vp.unload(); } catch (_) {} }
+  if (shell._vp) {
+    const vp = shell._vp; shell._vp = null;
+    // destroy() removes the frame (which stops playback) and the player's listener.
+    try { vp.destroy ? vp.destroy().catch(()=>{}) : (vp.pause && vp.pause().catch(()=>{})); } catch (_) {}
+  }
   iframe.src = '';
   const url = shell.dataset.thumbUrl || '';
   const ps  = url ? `style="background-image:url('${url}');background-size:cover;background-position:center"` : '';
