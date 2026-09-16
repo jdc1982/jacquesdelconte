@@ -202,10 +202,10 @@ const PAGES=[
   {file:'lv.html',label:'Louis Vuitton'},{file:'dior.html',label:'Dior'},
   {file:'cartier.html',label:'Cartier'},{file:'gucci.html',label:'Gucci'},
   {file:'mugler.html',label:'Mugler'},{file:'armani.html',label:'Armani Beauty'},
-  {file:'alaia.html',label:'Alaïa'},
+  {file:'armani-fragrance.html',label:'Armani Fragrance'},{file:'alaia.html',label:'Alaïa'},
   {file:'zegna.html',label:'Zegna'},{file:'pandora.html',label:'Pandora'},
   {file:'editorial.html',label:'Editorial'},
-  {file:'lancome.html',label:'Lancome'},{file:'dolce.html',label:'Dolce & Gabbana'},
+  {file:'lancome.html',label:'Lancôme'},{file:'dolce.html',label:'Dolce & Gabbana'},
   {file:'nars.html',label:'NARS'},{file:'boss.html',label:'Hugo Boss'},
   {file:'zara.html',label:'Zara'},{file:'zarahome.html',label:'Zara Home'},
   {file:'zarabeauty.html',label:'Zara Beauty'},{file:'editing-work.html',label:'Archive Work'},
@@ -271,8 +271,12 @@ function autoSlug(){
 }
 
 function mkTemplate(label,slug,sub,prev,next){
-  const ps=prev.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-  const ns=next.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  // Resolve a client name to its real file (e.g. "Dolce & Gabbana" -> dolce,
+  // "Lancôme" -> lancome). Falls back to a plain-ASCII slug of the name.
+  const norm=x=>x.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  const fileFor=n=>{const k=norm(n);const p=PAGES.find(p=>norm(p.label)===k||p.file===k+'.html');return p?p.file.replace(/\.html$/,''):k;};
+  const ps=fileFor(prev);
+  const ns=fileFor(next);
   const sh=sub?`<div class="sub">${sub}</div>`:'';
   return `<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#0C0C0B">\n<link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32"><link rel="apple-touch-icon" href="/apple-touch-icon.png">\n<title>${label} — Jacques del Conte</title>\n<link rel="preload" href="/fonts/archivo-var-latin.woff2" as="font" type="font/woff2" crossorigin>\n<link rel="preload" href="/fonts/ibmplexmono-400-latin.woff2" as="font" type="font/woff2" crossorigin>\n<link rel="preload" href="/fonts/ebgaramond-var-latin.woff2" as="font" type="font/woff2" crossorigin>\n<link rel="preconnect" href="https://player.vimeo.com" crossorigin><link rel="preconnect" href="https://i.vimeocdn.com" crossorigin><link rel="preconnect" href="https://f.vimeocdn.com" crossorigin><link rel="dns-prefetch" href="https://vod-progressive.akamaized.net">\n<link rel="stylesheet" href="style.css">\n</head>\n<body class="client-page">\n<header><div class="bar"><a href="index.html" class="back">&larr; All Work</a><a href="index.html" class="home">Jacques del Conte</a><div class="links"><a href="about.html">About</a><a href="mailto:jacques@jacquesdelconte.com">Contact</a><a href="https://www.linkedin.com/in/jacquesdelconte/" target="_blank" rel="noopener">LinkedIn</a></div></div></header>\n<div class="m-progress" id="mProgress"></div>\n<div class="m-story-wrap" id="mStory"></div>\n<div class="m-nav-hint" id="mNavHint"><span>Swipe</span><span class="arr">&rarr;</span></div>\n<main id="projects-desktop">\n  <section class="client-head wrap"><div class="eyebrow">Post Production</div><h1>${label}</h1>${sh}</section>\n  <nav class="index wrap"><div class="label">Projects</div><ul id="indexList"></ul></nav>\n  <div id="projects"></div>\n  <section class="pager wrap"><div class="pager-inner">\n    <a href="${ps}.html" class="prev"><div class="lbl">Previous</div><div class="nm">${prev}</div></a>\n    <a href="${ns}.html" class="next"><div class="lbl">Next</div><div class="nm">${next} &rarr;</div></a>\n  </div></section>\n</main>\n<footer class="wrap"><a class="mail" href="mailto:jacques@jacquesdelconte.com">jacques@jacquesdelconte.com</a><div class="copy">\u00a9 <span id="year"></span> Jacques del Conte \u2014 Executive Producer, Post Production</div></footer>\n<script src="client.js"><\/script>\n<script>\nconst PROJECTS=[\n  {id:'${slug}-1',title:'${label}',credits:[['EP of Post','Jacques del Conte']],films:[{provider:'vimeo',id:'',label:'',poster:''}],layout:'single'}\n];\ninitClientPage(PROJECTS);\n<\/script>\n</body></html>`;
 }
