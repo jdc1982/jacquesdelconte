@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<title>Admin — Jacques del Conte</title>
+<title>Admin | Jacques del Conte</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
@@ -114,7 +114,7 @@ input,select,textarea,button{font-family:var(--sans)}
       </div>
       <div class="field"><label>Subtitle (optional)</label><input type="text" id="ncSub" placeholder="e.g. N5 Campaign"></div>
       <div class="field">
-        <label>Thumbnail (optional — adds to homepage grid)</label>
+        <label>Thumbnail (optional, adds to homepage grid)</label>
         <div style="display:flex;gap:10px;align-items:flex-start">
           <input type="text" id="ncThumb" placeholder="Paste URL, or upload an image →" style="flex:1">
           <label style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border:1px solid var(--line);font-size:11px;letter-spacing:.14em;text-transform:uppercase;background:var(--bg);white-space:nowrap;color:var(--ink)">
@@ -167,7 +167,7 @@ input,select,textarea,button{font-family:var(--sans)}
           <span id="psThumbName" style="font-size:11px;color:var(--soft)"></span>
         </div>
         <div id="psReframe" style="margin-top:14px;display:none">
-          <label style="display:block;margin-bottom:8px">Reframe thumbnail <span style="color:var(--soft);text-transform:none;letter-spacing:0;font-size:11px">— drag the image to pan, use the slider to zoom (matches the 4:3 homepage tile)</span></label>
+          <label style="display:block;margin-bottom:8px">Reframe thumbnail <span style="color:var(--soft);text-transform:none;letter-spacing:0;font-size:11px">Drag the image to pan and use the slider to zoom (matches the 4:3 homepage tile)</span></label>
           <div id="psFrameStage" style="position:relative;width:280px;max-width:100%;aspect-ratio:4/3;overflow:hidden;background:#eceae6;border:1px solid var(--line);cursor:grab;user-select:none;touch-action:none">
             <img id="psFrameImg" draggable="false" style="position:absolute;width:100%;height:100%;object-fit:cover;object-position:50% 50%;transform:scale(1);transform-origin:50% 50%;pointer-events:none">
           </div>
@@ -278,7 +278,7 @@ function mkTemplate(label,slug,sub,prev,next){
   const ps=fileFor(prev);
   const ns=fileFor(next);
   const sh=sub?`<div class="sub">${sub}</div>`:'';
-  return `<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#0C0C0B">\n<link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32"><link rel="apple-touch-icon" href="/apple-touch-icon.png">\n<title>${label} — Jacques del Conte</title>\n<link rel="preload" href="/fonts/archivo-var-latin.woff2" as="font" type="font/woff2" crossorigin>\n<link rel="preload" href="/fonts/ibmplexmono-400-latin.woff2" as="font" type="font/woff2" crossorigin>\n<link rel="preload" href="/fonts/ebgaramond-var-latin.woff2" as="font" type="font/woff2" crossorigin>\n<link rel="preconnect" href="https://player.vimeo.com" crossorigin><link rel="preconnect" href="https://i.vimeocdn.com" crossorigin><link rel="preconnect" href="https://f.vimeocdn.com" crossorigin><link rel="dns-prefetch" href="https://vod-progressive.akamaized.net">\n<link rel="stylesheet" href="style.css">\n</head>\n<body class="client-page">\n<header><div class="bar"><a href="index.html" class="back">&larr; All Work</a><a href="index.html" class="home">Jacques del Conte</a><div class="links"><a href="about.html">About</a><a href="mailto:jacques@jacquesdelconte.com">Contact</a><a href="https://www.linkedin.com/in/jacquesdelconte/" target="_blank" rel="noopener">LinkedIn</a></div></div></header>\n<div class="m-progress" id="mProgress"></div>\n<div class="m-story-wrap" id="mStory"></div>\n<div class="m-nav-hint" id="mNavHint"><span>Swipe</span><span class="arr">&rarr;</span></div>\n<main id="projects-desktop">\n  <section class="client-head wrap"><div class="eyebrow">Post Production</div><h1>${label}</h1>${sh}</section>\n  <nav class="index wrap"><div class="label">Projects</div><ul id="indexList"></ul></nav>\n  <div id="projects"></div>\n  <section class="pager wrap"><div class="pager-inner">\n    <a href="${ps}.html" class="prev"><div class="lbl">Previous</div><div class="nm">${prev}</div></a>\n    <a href="${ns}.html" class="next"><div class="lbl">Next</div><div class="nm">${next} &rarr;</div></a>\n  </div></section>\n</main>\n<footer class="wrap"><a class="mail" href="mailto:jacques@jacquesdelconte.com">jacques@jacquesdelconte.com</a><div class="copy">\u00a9 <span id="year"></span> Jacques del Conte \u2014 Executive Producer, Post Production</div></footer>\n<script src="client.js"><\/script>\n<script>\nconst PROJECTS=[\n  {id:'${slug}-1',title:'${label}',credits:[['EP of Post','Jacques del Conte']],films:[{provider:'vimeo',id:'',label:'',poster:''}],layout:'single'}\n];\ninitClientPage(PROJECTS);\n<\/script>\n</body></html>`;
+  return `<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#0C0C0B">\n<link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32"><link rel="apple-touch-icon" href="/apple-touch-icon.png">\n<title>${label} | Jacques del Conte</title>\n<link rel="preload" href="/fonts/archivo-var-latin.woff2" as="font" type="font/woff2" crossorigin>\n<link rel="preload" href="/fonts/ibmplexmono-400-latin.woff2" as="font" type="font/woff2" crossorigin>\n<link rel="preload" href="/fonts/ebgaramond-var-latin.woff2" as="font" type="font/woff2" crossorigin>\n<link rel="preconnect" href="https://player.vimeo.com" crossorigin><link rel="preconnect" href="https://i.vimeocdn.com" crossorigin><link rel="preconnect" href="https://f.vimeocdn.com" crossorigin><link rel="dns-prefetch" href="https://vod-progressive.akamaized.net">\n<link rel="stylesheet" href="style.css">\n</head>\n<body class="client-page">\n<header><div class="bar"><a href="index.html" class="back">&larr; All Work</a><a href="index.html" class="home">Jacques del Conte</a><div class="links"><a href="about.html">About</a><a href="mailto:jacques@jacquesdelconte.com">Contact</a><a href="https://www.linkedin.com/in/jacquesdelconte/" target="_blank" rel="noopener">LinkedIn</a></div></div></header>\n<div class="m-progress" id="mProgress"></div>\n<div class="m-story-wrap" id="mStory"></div>\n<div class="m-nav-hint" id="mNavHint"><span>Swipe</span><span class="arr">&rarr;</span></div>\n<main id="projects-desktop">\n  <section class="client-head wrap"><div class="eyebrow">Post Production</div><h1>${label}</h1>${sh}</section>\n  <nav class="index wrap"><div class="label">Projects</div><ul id="indexList"></ul></nav>\n  <div id="projects"></div>\n  <section class="pager wrap"><div class="pager-inner">\n    <a href="${ps}.html" class="prev"><div class="lbl">Previous</div><div class="nm">${prev}</div></a>\n    <a href="${ns}.html" class="next"><div class="lbl">Next</div><div class="nm">${next} &rarr;</div></a>\n  </div></section>\n</main>\n<footer class="wrap"><a class="mail" href="mailto:jacques@jacquesdelconte.com">jacques@jacquesdelconte.com</a><div class="copy">\u00a9 <span id="year"></span> Jacques del Conte \u00b7 Executive Producer, Post Production</div></footer>\n<script src="client.js"><\/script>\n<script>\nconst PROJECTS=[\n  {id:'${slug}-1',title:'${label}',credits:[['EP of Post','Jacques del Conte']],films:[{provider:'vimeo',id:'',label:'',poster:''}],layout:'single'}\n];\ninitClientPage(PROJECTS);\n<\/script>\n</body></html>`;
 }
 
 async function handleThumbUpload(input){
@@ -531,7 +531,7 @@ async function applyPageSettings(){
     }
 
     // Update title tag
-    if(label) updated = updated.replace(/<title>[^<]+ — Jacques del Conte<\/title>/, `<title>${label} — Jacques del Conte</title>`);
+    if(label) updated = updated.replace(/<title>[^<]+ (?:\u2014|\|) Jacques del Conte<\/title>/, `<title>${label} | Jacques del Conte</title>`);
 
     // Save client page
     const enc = btoa(unescape(encodeURIComponent(updated)));
@@ -553,7 +553,7 @@ async function applyPageSettings(){
       if(tileImgRe.test(ihtml)){
         ihtml = ihtml.replace(tileImgRe, (m,p1) => `${p1}${newImg}`);
       } else {
-        // tile doesn't exist — add it
+        // tile doesn't exist: add it
         const tile = `      <a class="tile reveal" href="${currentFile}"><div class="tile-frame">${newImg}</div><div class="cap"><span class="idx"></span><span class="nm">${he(label)}</span></div></a>\n`;
         ihtml = ihtml.replace('    </div>\n  </section>\n  <section class="home-foot', tile+'    </div>\n  </section>\n  <section class="home-foot');
       }

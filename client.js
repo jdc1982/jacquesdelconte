@@ -1,5 +1,5 @@
 /* ============================================================
-   JACQUES DEL CONTE — client page engine
+   JACQUES DEL CONTE: client page engine
    ============================================================ */
 
 const fsLineSVG = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="square"><path d="M1.5 5.5v-4h4M10.5 1.5h4v4M14.5 10.5v4h-4M5.5 14.5h-4v-4"/></svg>`;
@@ -185,7 +185,7 @@ function toggleFullscreen(shell) {
 
   const iframe = shell.querySelector('iframe');
 
-  // 1) Native element fullscreen — works on desktop, Android, iPadOS.
+  // 1) Native element fullscreen: works on desktop, Android, iPadOS.
   const req = shell.requestFullscreen || shell.webkitRequestFullscreen;
   if (req) {
     try {
@@ -314,7 +314,7 @@ function featuringHTML(rows) {
   return f ? `<div class="p-featuring">Featuring ${f[1]}</div>` : '';
 }
 function creditsHTML(rows) {
-  // Featuring is rendered separately via featuringHTML — exclude it here
+  // Featuring is rendered separately via featuringHTML: exclude it here
   const filtered = rows.filter(c => c[0].toLowerCase() !== 'featuring');
   return '<div class="credit-row">' + filtered.map((c,i) =>
     `<span class="credit ${i===0?'lead':''}"><span class="role">${c[0]}</span><span class="name">${c[1]}</span></span>`
@@ -411,7 +411,7 @@ function setShellAudio(shell, on) {
     warmVimeo(shell, fresh);
     if (window._jdcAudioDebug) console.log('[audio] swapped iframe to non-background at t=', t);
   } else if (on && shell._vp) {
-    // Already on non-background iframe — API calls work normally here.
+    // Already on non-background iframe: API calls work normally here.
     shell._vp.setVolume(1).catch(() => {});
     shell._vp.setMuted(false).catch(() => {});
     if (window._jdcAudioDebug) console.log('[audio] set UNMUTED (post-swap)');
@@ -433,7 +433,7 @@ function injectIframe(shell, muted, primary = true) {
   // "Primary" = the one cross-section single-playback slot. Tearing down the
   // previous primary stops a video when you scroll from one section to another.
   // Carousel neighbours are injected as non-primary (preload) so they don't
-  // evict each other — the carousel manages its own teardown.
+  // evict each other: the carousel manages its own teardown.
   if (primary) {
     if (_activeShell && _activeShell !== shell) teardownShell(_activeShell);
     _activeShell = shell;
@@ -446,7 +446,7 @@ function injectIframe(shell, muted, primary = true) {
   // autoplay-policy violation) AND accepts a setVolume postMessage afterwards
   // WITHOUT a user gesture. A normal embed won't unmute gesturelessly. We always
   // load muted, then (desktop) raise volume ~1200ms later once the player has
-  // initialised — matching the working reference portfolio.
+  // initialised: matching the working reference portfolio.
   const src = provider==='vimeo'
     ? `https://player.vimeo.com/video/${id}?background=1&autoplay=1&muted=1&loop=1&playsinline=1&transparent=0&quality=auto${shell.dataset.hash?`&h=${shell.dataset.hash}`:''}`
     : `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&controls=0&playlist=${id}&rel=0&playsinline=1&enablejsapi=1`;
@@ -618,7 +618,7 @@ function initHScroller(scroller, shells) {
         if (i === idx) {
           // Only seek if we have a saved position to resume to. Seeking to 0
           // on a fresh background-mode video can stall it before playback
-          // settles — autoplay already starts at 0.
+          // settles: autoplay already starts at 0.
           if (s._resumeAt && s._resumeAt > 0.5 && (!s._duration || s._resumeAt < s._duration - 1)) {
             s._vp.setCurrentTime(s._resumeAt).catch(()=>{});
           }
@@ -626,7 +626,7 @@ function initHScroller(scroller, shells) {
           // Unmute reliably. The 'playing' event may already have fired
           // (background autoplay starts the instant the iframe loads, often
           // before we get to bind a listener), so:
-          //  1. Check getPaused() — if it's already playing, unmute now.
+          //  1. Check getPaused(): if it's already playing, unmute now.
           //  2. Also bind a one-shot 'playing' listener for the case where
           //     it hasn't started yet.
           //  3. Safety timer in case both miss.
@@ -664,7 +664,7 @@ function initHScroller(scroller, shells) {
   onTeardown(() => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); });
 
   scroller.addEventListener('scroll', () => {
-    // Don't tear down on every tick — neighbours are pre-buffered, so just
+    // Don't tear down on every tick: neighbours are pre-buffered, so just
     // settle on the new index and let activateSlot manage what stays loaded.
     clearTimeout(scrollTimer);
     scrollTimer = setTimeout(() => {
@@ -735,7 +735,7 @@ function renderDesktop(projects, indexLabel) {
       // Hero only, no sub-films
       filmsHTML = `<div class="films single">${filmShell(p.heroFilm)}</div>`;
     } else if (p.films.length > 1) {
-      // Multiple films, no hero — horizontal scroller
+      // Multiple films, no hero: horizontal scroller
       filmsHTML = hscrollerHTML(p.films, p.id);
     } else {
       // Single film
@@ -770,20 +770,20 @@ function renderDesktop(projects, indexLabel) {
   });
 
   // Desktop: scroll-based single-video autoplay.
-  // Carousel (.films-hscroll) shells are managed by initHScroller — exclude them
+  // Carousel (.films-hscroll) shells are managed by initHScroller: exclude them
   // here so the two systems don't tear down / inject the same nodes against each other.
   const allShells = [...el.querySelectorAll('.video-shell')].filter(s => !s.closest('.films-hscroll'));
 
   let _obsTimer = null;
   // Single/hero videos play one-at-a-time (injecting a new primary tears down
-  // the previous). So we must NOT preload the next one early via rootMargin —
+  // the previous). So we must NOT preload the next one early via rootMargin
   // that would evict the video you're still watching. Instead: no lookahead
   // margin, a modest gate so it loads as it becomes the dominant video in view,
   // and teardown the instant a video leaves the real viewport (stops audio).
   const singleObs = new IntersectionObserver(entries => {
     // While any video is in fullscreen, the fullscreen layer reparents shells,
     // which makes the observer report false "left viewport" events. Ignore them
-    // — tearing down or re-injecting here would wipe the video being watched.
+    // Tearing down or re-injecting here would wipe the video being watched.
     if (document.fullscreenElement || document.webkitFullscreenElement ||
         document.querySelector('.video-shell.jdc-fs')) return;
     let best = null, bestRatio = 0;
@@ -941,7 +941,7 @@ function renderMobile(projects) {
 }
 
 /* ── INIT ─────────────────────────────────────────────────── */
-// A phone in landscape is wider than 768px but very short — treat that as mobile too.
+// A phone in landscape is wider than 768px but very short: treat that as mobile too.
 function wantMobile() {
   return window.matchMedia('(max-width:768px)').matches ||
          window.matchMedia('(orientation:landscape) and (max-height:540px)').matches;

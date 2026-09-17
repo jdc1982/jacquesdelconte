@@ -1,10 +1,10 @@
 /* ============================================================
-   JACQUES DEL CONTE — shared stylesheet
+   JACQUES DEL CONTE: shared stylesheet
    ============================================================ */
 /* ── Self-hosted faces ───────────────────────────────────────
    Archivo and EB Garamond are variable; one file covers the whole
    weight range each. IBM Plex Mono ships as static instances.
-   latin + latin-ext subsets only. SIL OFL 1.1 — see fonts/OFL.txt. */
+   latin + latin-ext subsets only. SIL OFL 1.1: see fonts/OFL.txt. */
 @font-face{font-family:'Archivo';font-style:normal;font-weight:400 600;font-display:swap;src:url('/fonts/archivo-var-latin.woff2') format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
 @font-face{font-family:'Archivo';font-style:normal;font-weight:400 600;font-display:swap;src:url('/fonts/archivo-var-latin-ext.woff2') format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF}
 @font-face{font-family:'EB Garamond';font-style:normal;font-weight:400 500;font-display:swap;src:url('/fonts/ebgaramond-var-latin.woff2') format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
@@ -16,30 +16,30 @@
 @font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url('/fonts/ibmplexmono-500-latin.woff2') format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
 @font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url('/fonts/ibmplexmono-500-latin-ext.woff2') format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF}
 :root{
-  /* Screening Room II — palette (identity guide, page 04) */
+  /* Screening Room II: palette (identity guide, page 04) */
   --bg:#0C0C0B;          /* Ground */
-  --surface:#141310;     /* Panel — media + tile ground */
-  --ink:#EDEAE3;         /* Ivory — text on dark */
+  --surface:#141310;     /* Panel: media + tile ground */
+  --ink:#EDEAE3;         /* Ivory: text on dark */
   --body:#d6d2c9;        /* body copy on dark */
   --soft:#a8a49b;        /* secondary */
-  --mute:#7d7a72;        /* Secondary — labels, mono */
+  --mute:#7d7a72;        /* Secondary: labels, mono */
   --faint:#7d7a72;       /* raised from its previous value (3.52:1) to clear AA at 9px.
                             Same value as --mute; kept as a separate slot. */
   --graphite:#3A3936;    /* inactive markers */
   --line:#24231f;        /* Hairline */
-  --accent:#F1E9D7;      /* Cream — the one accent. Rules, markers, live state.
+  --accent:#F1E9D7;      /* Cream: the one accent. Rules, markers, live state.
                             16.19:1 on --bg, so unlike the former Ember it needs no
                             lightened variant for small text. On an accent GROUND the
                             type inverts to --bg (identity guide, inversion rule). */
   /* Channel triples: the ONLY way an alpha variant of a palette colour is
      written outside :root. The first three back the hex tokens above.
-     --scrim-rgb has no hex counterpart — it is player-chrome scrim only,
+     --scrim-rgb has no hex counterpart: it is player-chrome scrim only,
      a cooler near-black that is NOT --bg (12,12,11). */
   --bg-rgb:12,12,11;
   --ink-rgb:237,234,227;
   --accent-rgb:241,233,215;
   --scrim-rgb:10,10,11;
-  /* Screening Room II — type, three voices.
+  /* Screening Room II: type, three voices.
      --serif is the voice: statements and all running body copy.
      --display/--sans is structure: lockups, headings, eyebrows, footers.
      --mono is technical copy only, never a sentence. */
@@ -236,7 +236,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(var(--bg-rgb),0.86);-we
     position:relative;
   }
 
-  /* arrow buttons — sit over left/right edges of the scroller */
+  /* arrow buttons: sit over left/right edges of the scroller */
   .hscroll-arrow{
     position:absolute;
     top:0;bottom:0;
@@ -359,7 +359,7 @@ body.jdc-fs-lock{overflow:hidden !important;}
 
 /* ── Mobile landscape: make video fit + keep the story navigable ── */
 @media (orientation:landscape) and (max-height:540px){
-  /* credits can't eat the whole screen — cap and let them scroll if long */
+  /* credits can't eat the whole screen: cap and let them scroll if long */
   .m-slide-info{
     max-height:34%;
     overflow-y:auto;
@@ -465,7 +465,7 @@ body.about-page{overflow-x:hidden}
 }
 
 /* ══════════════════════════════════════════════════════════════
-   IDENTITY — Screening Room II
+   IDENTITY: Screening Room II
    Cream is structure and state only: a rule, a marker, a live
    position. Never decoration, never behind body copy.
    ══════════════════════════════════════════════════════════════ */
@@ -483,7 +483,7 @@ html{color-scheme:dark}
 .tile .cap .idx::before{content:counter(tile,decimal-leading-zero)}
 
 /* Tile caption is a ledger row: index + name, always legible, sitting on a
-   hairline. Cream is the live-state marker — it wipes across that hairline
+   hairline. Cream is the live-state marker: it wipes across that hairline
    and lights the index number on hover. Nothing decorative. */
 .tile .cap::before{
   content:"";position:absolute;left:0;right:0;top:-1px;height:1px;
@@ -549,5 +549,5 @@ body.about-page .about-contact a:hover{color:var(--accent);border-bottom-color:v
 
 /* The hero mark IS the header rule. As the page scrolls the hairline widens
    toward the viewport edges and lands on the header's underside exactly as
-   the header's own rule comes up to meet it — one line, not two. */
+   the header's own rule comes up to meet it: one line, not two. */
 #site-header{border-bottom-color:rgba(var(--accent-rgb),var(--hp,1))}
