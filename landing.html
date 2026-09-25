@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0C0C0B">
+<link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>Jacques del Conte | Executive Producer, Post Production</title>
+<meta name="description" content="Jacques del Conte, Executive Producer, Post Production. Post for luxury fashion and beauty films. Portfolio available on request.">
+<link rel="canonical" href="https://jacquesdelconte.com/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://jacquesdelconte.com/">
+<meta property="og:title" content="Jacques del Conte | Executive Producer, Post Production">
+<meta property="og:description" content="Post for luxury fashion and beauty films. Portfolio available on request.">
+<link rel="preload" href="/fonts/archivo-var-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/ebgaramond-var-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/ibmplexmono-400-latin.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+/* Self-contained on purpose: one HTML request plus three fonts, no style.css
+   (38KB of portfolio rules this page never uses). Tokens mirror style.css. */
+@font-face{font-family:'Archivo';font-style:normal;font-weight:400 600;font-display:swap;src:url('/fonts/archivo-var-latin.woff2') format('woff2')}
+@font-face{font-family:'EB Garamond';font-style:normal;font-weight:400 500;font-display:swap;src:url('/fonts/ebgaramond-var-latin.woff2') format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/ibmplexmono-400-latin.woff2') format('woff2')}
+:root{
+  --bg:#0C0C0B;--ink:#EDEAE3;--body:#d6d2c9;--soft:#a8a49b;--mute:#7d7a72;--line:#24231f;
+  --accent:#F1E9D7;--accent-rgb:241,233,215;
+  --display:'Archivo','Helvetica Neue',Helvetica,Arial,sans-serif;
+  --serif:'EB Garamond',Garamond,'Times New Roman',Times,serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --ease:cubic-bezier(0.22,1,0.36,1);
+  --pad:clamp(22px,5vw,64px);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--display);-webkit-font-smoothing:antialiased;min-height:100vh;min-height:100svh;display:flex;flex-direction:column}
+::selection{background:var(--ink);color:var(--bg)}
+a{color:inherit;text-decoration:none}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:2px}
+
+.page{flex:1;display:grid;grid-template-columns:1fr;align-content:center;gap:clamp(40px,7vh,72px);max-width:1180px;width:100%;margin:0 auto;padding:clamp(56px,11vh,120px) var(--pad) clamp(48px,8vh,88px)}
+@media(min-width:900px){.page{grid-template-columns:minmax(0,5fr) minmax(0,6fr);column-gap:clamp(48px,7vw,112px);align-items:start}}
+
+/* Lockup: the one loud element. */
+.lockup h1{font-family:var(--display);font-weight:500;font-size:clamp(2rem,3.7vw,3.4rem);line-height:1.08;letter-spacing:.16em;text-transform:uppercase}
+.lockup h1 span{display:block;white-space:nowrap}
+@media(max-width:899px){.lockup h1{font-size:clamp(2rem,8.4vw,3.4rem)}}
+.mark{display:flex;align-items:center;gap:10px;margin:clamp(24px,4vh,36px) 0 18px}
+.mark::before{content:"";flex:none;width:8px;height:8px;background:var(--accent);animation:markIn .9s var(--ease) .3s both}
+.mark::after{content:"";flex:none;width:110px;height:1px;background:rgba(var(--accent-rgb),.78);transform-origin:left center;animation:ruleIn .9s var(--ease) .9s both}
+@keyframes markIn{0%{transform:scale(0);opacity:0}30%{transform:scale(1);opacity:1}40%{opacity:.15}52%{opacity:1}62%{opacity:.35}100%{transform:scale(1);opacity:1}}
+@keyframes ruleIn{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.role{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--soft)}
+
+/* Voice: EB Garamond carries every sentence, per the identity. */
+.bio p{font-family:var(--serif);font-size:clamp(1.18rem,1.55vw,1.32rem);line-height:1.62;color:var(--body);max-width:34em}
+.bio p+p{margin-top:1em}
+.bio p,.ask p{text-wrap:pretty}
+
+.ask{margin-top:clamp(32px,5vh,48px);padding-top:clamp(28px,4vh,40px);border-top:1px solid var(--line)}
+.ask p{font-family:var(--serif);font-size:clamp(1.18rem,1.55vw,1.32rem);line-height:1.5;color:var(--ink);max-width:30em}
+.btn{display:inline-flex;align-items:center;margin-top:26px;padding:16px 26px;background:var(--accent);color:var(--bg);border:1px solid var(--accent);font-family:var(--display);font-weight:500;font-size:12px;letter-spacing:.2em;text-transform:uppercase;transition:background .3s var(--ease),color .3s var(--ease)}
+.btn:hover{background:transparent;color:var(--accent)}
+.ask .direct{margin-top:20px;font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--mute)}
+.ask .direct a{color:var(--ink);border-bottom:1px solid var(--mute);padding-bottom:1px;transition:border-color .3s}
+.ask .direct a:hover{border-bottom-color:var(--ink)}
+
+footer{border-top:1px solid var(--line)}
+.foot{max-width:1180px;margin:0 auto;padding:22px var(--pad);display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px 28px;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+.foot nav{display:flex;gap:24px}
+.foot a{transition:color .3s}.foot a:hover{color:var(--ink)}
+
+/* Single load moment, then stillness. */
+.in{opacity:0;transform:translateY(12px);animation:rise 1s var(--ease) forwards}
+.d1{animation-delay:.1s}.d2{animation-delay:.45s}.d3{animation-delay:.7s}
+@keyframes rise{to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.in,.mark::before,.mark::after{animation:none;opacity:1;transform:none}}
+@media(max-width:420px){.lockup h1{letter-spacing:.12em}.btn{width:100%;justify-content:center}}
+</style>
+</head>
+<body>
+<main class="page">
+  <section class="lockup in d1">
+    <h1><span>Jacques</span> <span>del Conte</span></h1>
+    <div class="mark" aria-hidden="true"></div>
+    <p class="role">Executive Producer, Post Production</p>
+  </section>
+
+  <section class="copy">
+    <div class="bio in d2">
+      <p>I produce post for luxury fashion and beauty films, working directly with brand studios and with the agencies that make their campaigns. One bid, one invoice and one person responsible, from the first cut through colour, beauty retouch and final delivery.</p>
+      <p>I spent years as a commercial editor in New York, then built two in-house post operations from nothing, at Baron &amp; Baron and at Anomaly. Recent work includes films for Louis Vuitton, Dior, Cartier, Gucci, Mugler, Armani and Zara.</p>
+    </div>
+
+    <div class="ask in d3">
+      <p>My portfolio is shared privately. Write to me and I will send you a link.</p>
+      <a class="btn" href="mailto:jacques@jacquesdelconte.com?subject=Portfolio%20request&amp;body=Hello%20Jacques%2C%0D%0A%0D%0A">Request the portfolio</a>
+      <p class="direct"><a href="mailto:jacques@jacquesdelconte.com">jacques@jacquesdelconte.com</a></p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="foot">
+    <span>&copy; <span id="year">2026</span> Jacques del Conte</span>
+    <nav aria-label="Contact">
+      <a href="mailto:jacques@jacquesdelconte.com">Email</a>
+      <a href="https://www.linkedin.com/in/jacquesdelconte/" target="_blank" rel="noopener">LinkedIn</a>
+    </nav>
+  </div>
+</footer>
+<script>document.getElementById('year').textContent=new Date().getFullYear();</script>
+</body>
+</html>
