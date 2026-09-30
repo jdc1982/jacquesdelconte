@@ -369,6 +369,16 @@ function setShellAudio(shell, on) {
   if (!shell) return;
   shell._muted = !on;
   const iframe = shell.querySelector('iframe');
+  // Mobile: iOS will not let a tap on our page start sound inside Vimeo's
+  // cross-origin frame, so a new frame asked to autoplay with sound stays
+  // silent. Hand the tap to Vimeo instead (see handToVimeo). Only the native
+  // fullscreen check applies here: on iOS the Vimeo fullscreen never fires
+  // fullscreenchange, so shell._fsActive can stay set after leaving it.
+  if (on && iframe && shell.dataset.provider === 'vimeo' && wantMobile() &&
+      !(document.fullscreenElement || document.webkitFullscreenElement)) {
+    handToVimeo(shell, iframe, shell.dataset.id, shell.dataset.hash);
+    return;
+  }
   if (!shell._vp || !iframe) {
     if (iframe) {
       vimeoPost(iframe, 'setVolume', on ? 1 : 0);
@@ -424,6 +434,52 @@ function setShellAudio(shell, on) {
   setMuteLabel(shell, on);
 }
 
+// Mobile sound. Load the film with Vimeo's own controls and let the frame
+// take touches. Chrome on Android usually starts it with sound straight away.
+// iOS shows Vimeo's play button instead, and a tap there is inside the frame,
+// so sound is allowed. Once the player reports it is playing with sound, the
+// frame stops taking touches (swiping works again) and our bar comes back.
+function setHandoff(shell, on) {
+  shell.classList.toggle('vimeo-handoff', on);
+  const unit = shell.closest('.m-video-unit');
+  if (unit) unit.classList.toggle('vimeo-handoff', on);
+}
+function handToVimeo(shell, iframe, id, hash) {
+  const t = (typeof shell._resumeAt === 'number' && shell._resumeAt > 0.5) ? shell._resumeAt : 0;
+  const src = `https://player.vimeo.com/video/${id}?autoplay=1&muted=0&loop=1&playsinline=1&controls=1&title=0&byline=0&portrait=0&transparent=0&color=F1E9D7&quality=auto${hash?`&h=${hash}`:''}#t=${t}s`;
+  const oldVp = shell._vp;
+  shell._vp = null;
+  const fresh = document.createElement('iframe');
+  fresh.src = src;
+  fresh.allow = iframe.allow;
+  fresh.allowFullscreen = true;
+  iframe.replaceWith(fresh);
+  try { oldVp && oldVp.destroy && oldVp.destroy().catch(()=>{}); } catch(_){}
+  shell._muted = true;  // until the player confirms sound
+  setMuteLabel(shell, false);
+  setHandoff(shell, true);
+  warmVimeo(shell, fresh);
+  let tries = 0;
+  const bind = () => {
+    const vp = shell._vp;
+    if (!vp) { if (++tries < 40) setTimeout(bind, 150); return; }
+    const check = () => {
+      if (shell._vp !== vp || !shell.classList.contains('vimeo-handoff')) return;
+      Promise.all([vp.getPaused(), vp.getMuted(), vp.getVolume()]).then(([paused, muted, vol]) => {
+        if (shell._vp !== vp || paused || muted || !(vol > 0)) return;
+        shell._muted = false;
+        setHandoff(shell, false);
+        setMuteLabel(shell, true);
+        if (window._jdcAudioDebug) console.log('[audio] mobile: playing with sound');
+      }).catch(()=>{});
+    };
+    ['playing', 'play', 'volumechange', 'timeupdate'].forEach(ev => vp.on(ev, check));
+    check();
+  };
+  bind();
+  if (window._jdcAudioDebug) console.log('[audio] mobile: handed to Vimeo controls at t=', t);
+}
+
 function injectIframe(shell, muted, primary = true) {
   if (!shell) return;
   if (shell.querySelector('iframe')) return;
@@ -454,6 +510,7 @@ function injectIframe(shell, muted, primary = true) {
   iframe.src = src;
   iframe.allow = 'autoplay; fullscreen; picture-in-picture';
   iframe.allowFullscreen = true;
+  setHandoff(shell, false);
   shell.innerHTML = '';
   shell.appendChild(iframe);
   shell.style.cursor = 'default';
@@ -553,6 +610,7 @@ function warmVimeo(shell, iframe) {
 
 function teardownShell(shell) {
   const iframe = shell.querySelector('iframe'); if (!iframe) return;
+  setHandoff(shell, false);
   clearTimeout(shell._revealTimer);
   clearTimeout(shell._unmuteTimer);
   shell._seekTarget = null;

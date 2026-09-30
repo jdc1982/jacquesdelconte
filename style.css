@@ -551,3 +551,15 @@ body.about-page .about-contact a:hover{color:var(--accent);border-bottom-color:v
    toward the viewport edges and lands on the header's underside exactly as
    the header's own rule comes up to meet it: one line, not two. */
 #site-header{border-bottom-color:rgba(var(--accent-rgb),var(--hp,1))}
+
+/* ── Mobile sound hand-off ─────────────────────────────────────
+   While Vimeo's own controls are up (see handToVimeo in client.js) the frame
+   takes touches, and the bar shows one line of instruction in its place. */
+.video-shell.vimeo-handoff iframe{pointer-events:auto;opacity:1}
+.m-video-unit.vimeo-handoff .jdc-ctrl{position:relative}
+.m-video-unit.vimeo-handoff .jdc-ctrl>*{visibility:hidden}
+.m-video-unit.vimeo-handoff .jdc-ctrl::after{
+  content:"Tap the film to play with sound";position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--soft);
+}
