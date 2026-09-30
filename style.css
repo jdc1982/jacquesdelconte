@@ -551,9 +551,3 @@ body.about-page .about-contact a:hover{color:var(--accent);border-bottom-color:v
    toward the viewport edges and lands on the header's underside exactly as
    the header's own rule comes up to meet it: one line, not two. */
 #site-header{border-bottom-color:rgba(var(--accent-rgb),var(--hp,1))}
-
-/* ── Mobile: tap to play ───────────────────────────────────────
-   Films load paused in Vimeo's own player (see injectIframe in client.js),
-   so the frame takes the tap and our transport bar steps aside. */
-.video-shell.m-tap iframe{pointer-events:auto;opacity:1}
-.m-video-unit.m-tap .jdc-ctrl{display:none !important}

@@ -447,12 +447,14 @@ function injectIframe(shell, muted, primary = true) {
   // WITHOUT a user gesture. A normal embed won't unmute gesturelessly. We always
   // load muted, then (desktop) raise volume ~1200ms later once the player has
   // initialised: matching the working reference portfolio.
-  // Phones: iOS only allows sound when the tap lands inside Vimeo's own frame,
-  // so on mobile nothing autoplays. The film loads paused in Vimeo's player,
-  // sound on, and the viewer taps Vimeo's play button.
-  const tapToPlay = provider === 'vimeo' && wantMobile();
-  const src = tapToPlay
-    ? `https://player.vimeo.com/video/${id}?autoplay=0&muted=0&loop=1&playsinline=1&controls=1&title=0&byline=0&portrait=0&color=F1E9D7&transparent=0&quality=auto${shell.dataset.hash?`&h=${shell.dataset.hash}`:''}`
+  // Phones: load the normal (non-background) player, muted. iOS refuses sound
+  // from a frame that is reloaded and asked to start with sound, but it does
+  // let a tap turn the volume up on a player that is already running. So on
+  // mobile Unmute is a volume change on this same frame, never a reload
+  // (setShellAudio takes the non-background branch).
+  const mobileVimeo = provider === 'vimeo' && wantMobile();
+  const src = mobileVimeo
+    ? `https://player.vimeo.com/video/${id}?autoplay=1&muted=1&loop=1&playsinline=1&controls=0&title=0&byline=0&portrait=0&transparent=0&quality=auto${shell.dataset.hash?`&h=${shell.dataset.hash}`:''}`
     : provider==='vimeo'
     ? `https://player.vimeo.com/video/${id}?background=1&autoplay=1&muted=1&loop=1&playsinline=1&transparent=0&quality=auto${shell.dataset.hash?`&h=${shell.dataset.hash}`:''}`
     : `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&controls=0&playlist=${id}&rel=0&playsinline=1&enablejsapi=1`;
@@ -465,22 +467,6 @@ function injectIframe(shell, muted, primary = true) {
   shell.style.cursor = 'default';
   shell._muted = true;
   buildControls(shell, true);
-  shell.classList.toggle('m-tap', tapToPlay);
-  const unit = shell.closest('.m-video-unit');
-  if (unit) unit.classList.toggle('m-tap', tapToPlay);
-  if (tapToPlay) {
-    // Vimeo draws its own poster and play button, so show the frame at once
-    // and skip the autoplay and auto-unmute steps below.
-    shell._muted = false;
-    shell.classList.add('is-playing');
-    const vp = warmVimeo(shell, iframe);
-    // Coming back to a film: cue it where the viewer left off.
-    const t = shell._resumeAt;
-    if (vp && t > 0.5 && (!shell._duration || t < shell._duration - 1)) {
-      vp.ready().then(() => vp.setCurrentTime(t)).catch(()=>{});
-    }
-    return;
-  }
   // Reveal the iframe once playing; safety-net reveal at 2.5s.
   clearTimeout(shell._revealTimer);
   shell._revealTimer = setTimeout(() => shell.classList.add('is-playing'), 2500);
